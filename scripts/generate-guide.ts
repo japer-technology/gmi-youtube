@@ -48,6 +48,9 @@ interface EditorialBlock {
   endHour: number;
 }
 
+const DEFAULT_DURATION_MINUTES = 30;
+const BUFFER_MINUTES = 15;
+
 const EDITORIAL_BLOCKS: EditorialBlock[] = [
   { name: "morning", startHour: 6, endHour: 10 },
   { name: "midday", startHour: 10, endHour: 14 },
@@ -68,9 +71,9 @@ function blockForHour(hour: number): string {
 }
 
 function parseDurationMinutes(isoDuration?: string): number {
-  if (!isoDuration) return 30; // default to 30 min if unknown
+  if (!isoDuration) return DEFAULT_DURATION_MINUTES;
   const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return 30;
+  if (!match) return DEFAULT_DURATION_MINUTES;
   const hours = parseInt(match[1] || "0", 10);
   const minutes = parseInt(match[2] || "0", 10);
   const seconds = parseInt(match[3] || "0", 10);
@@ -128,16 +131,17 @@ async function main(): Promise<void> {
   });
 
   // Assign scheduledAt timestamps across the day
-  // Start at 06:00 and space by video duration plus a 15-minute buffer
+  // Start at 06:00 and space by video duration plus buffer
+  // End at 02:00 next day to accommodate the full late block
   const baseDate = new Date(`${guideDate}T06:00:00Z`);
-  const endOfDay = new Date(`${guideDate}T23:59:59Z`);
+  const endOfSchedule = new Date(baseDate.getTime() + 20 * 60 * 60 * 1000); // 02:00 next day
   let currentTime = baseDate.getTime();
   const now = new Date().toISOString();
 
   const guideEntries: GuideEntry[] = [];
 
   for (const video of videos) {
-    if (currentTime > endOfDay.getTime()) break;
+    if (currentTime > endOfSchedule.getTime()) break;
 
     const scheduledAt = new Date(currentTime);
     const hour = scheduledAt.getUTCHours();
@@ -158,9 +162,9 @@ async function main(): Promise<void> {
 
     guideEntries.push(entry);
 
-    // Advance by video duration + 15-minute buffer (minimum 30 minutes)
+    // Advance by video duration + buffer (minimum default duration)
     const durationMin = parseDurationMinutes(video.duration);
-    const slotMinutes = Math.max(durationMin + 15, 30);
+    const slotMinutes = Math.max(durationMin + BUFFER_MINUTES, DEFAULT_DURATION_MINUTES);
     currentTime += slotMinutes * 60 * 1000;
   }
 
