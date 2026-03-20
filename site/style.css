@@ -1,0 +1,158 @@
+/* Station — Minimal static site styles */
+
+:root {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --border: #e0e0e0;
+  --accent: #0055cc;
+  --card-bg: #fff;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+header p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+nav {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 1rem;
+}
+
+nav a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+nav a.active {
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+nav a:hover {
+  border-bottom-color: var(--accent);
+}
+
+main section {
+  margin-bottom: 2rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.placeholder {
+  color: var(--muted);
+  font-style: italic;
+  padding: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.card .meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.card a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.card a:hover {
+  text-decoration: underline;
+}
+
+.guide-entry {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.guide-entry .time {
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-width: 5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.channel-wall {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.badge.live {
+  background: #cc0000;
+}
+
+.badge.upcoming {
+  background: #cc8800;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+}

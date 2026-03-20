@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://gmi-youtube.github.io/schemas/viewing-receipt.json",
+  "title": "Viewing Receipt",
+  "description": "A periodic summary of station viewing activity",
+  "type": "object",
+  "required": ["id", "periodStart", "periodEnd", "generatedAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique receipt identifier (e.g. receipt-2026-03-20)"
+    },
+    "periodStart": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 start of the reporting period"
+    },
+    "periodEnd": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 end of the reporting period"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this receipt was generated"
+    },
+    "watched": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["videoId", "title"],
+        "properties": {
+          "videoId": { "type": "string" },
+          "title": { "type": "string" },
+          "channelTitle": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "description": "Videos watched during the period"
+    },
+    "arrived": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["videoId", "title"],
+        "properties": {
+          "videoId": { "type": "string" },
+          "title": { "type": "string" },
+          "channelTitle": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "description": "New videos that arrived during the period"
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["videoId", "title"],
+        "properties": {
+          "videoId": { "type": "string" },
+          "title": { "type": "string" },
+          "channelTitle": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "description": "Videos that were available but not watched"
+    },
+    "curatorNotes": {
+      "type": "string",
+      "description": "AI curator summary or observations for the period"
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "totalWatched": { "type": "integer", "minimum": 0 },
+        "totalArrived": { "type": "integer", "minimum": 0 },
+        "totalSkipped": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false,
+      "description": "Aggregate statistics for the period"
+    }
+  },
+  "additionalProperties": false
+}

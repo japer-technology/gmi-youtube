@@ -1,0 +1,27 @@
+{
+  "id": "receipt-2026-03-19",
+  "periodStart": "2026-03-19T00:00:00Z",
+  "periodEnd": "2026-03-19T23:59:59Z",
+  "generatedAt": "2026-03-20T06:00:00Z",
+  "watched": [
+    {
+      "videoId": "dQw4w9WgXcQ",
+      "title": "Scenic Train Ride Through the Swiss Alps — 4K Cab View",
+      "channelTitle": "TRAVIS"
+    }
+  ],
+  "arrived": [
+    {
+      "videoId": "dQw4w9WgXcQ",
+      "title": "Scenic Train Ride Through the Swiss Alps — 4K Cab View",
+      "channelTitle": "TRAVIS"
+    }
+  ],
+  "skipped": [],
+  "curatorNotes": "Light viewing day. One new long-form scenic ride arrived and was watched in the evening block.",
+  "stats": {
+    "totalWatched": 1,
+    "totalArrived": 1,
+    "totalSkipped": 0
+  }
+}

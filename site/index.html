@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Station</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Station</h1>
+    <p>A personal TV station powered by YouTube, GitHub, and AI curation.</p>
+    <nav>
+      <a href="index.html" class="active">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="wall.html">Channel Wall</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="about">
+      <h2>What Is This?</h2>
+      <p>
+        Station turns years of YouTube subscriptions, playlists, and viewing history
+        into a calm, personal viewing experience. YouTube provides the content.
+        GitHub provides the infrastructure and memory. You own the data.
+      </p>
+    </section>
+
+    <section id="latest">
+      <h2>Latest Guide</h2>
+      <div id="guide-preview">
+        <p class="placeholder">Loading guide data…</p>
+      </div>
+    </section>
+
+    <section id="channels">
+      <h2>Tracked Channels</h2>
+      <div id="channel-list">
+        <p class="placeholder">Loading channel data…</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built from repository resources. Inspectable, portable, and yours.</p>
+  </footer>
+
+  <script src="station.js"></script>
+</body>
+</html>
