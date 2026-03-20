@@ -1,0 +1,12 @@
+{
+  "id": "PLexample123",
+  "channelId": "UCBcRF18a7Qf58cCRy5xuWwQ",
+  "title": "Alpine Rail Journeys",
+  "description": "A curated collection of scenic train rides through the Alps.",
+  "thumbnailUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+  "itemCount": 1,
+  "videoIds": ["dQw4w9WgXcQ"],
+  "source": "youtube",
+  "updatedAt": "2026-03-20T10:00:00Z",
+  "tags": ["trains", "alps", "collection"]
+}

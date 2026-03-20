@@ -1,3 +1,5 @@
 node_modules/
 .github-minimum-intelligence/node_modules/
 .DS_Store
+dist/
+bun.lockb

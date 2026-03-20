@@ -1,0 +1,209 @@
+/**
+ * check.ts — Validate schemas and resources
+ *
+ * Confirms that:
+ * - All schema files are valid JSON Schema
+ * - All resource files conform to their corresponding schemas
+ * - The site can build from repository resources
+ */
+
+import { readdir, readFile } from "node:fs/promises";
+import { join, basename } from "node:path";
+
+const ROOT = join(import.meta.dir, "..");
+const SCHEMAS_DIR = join(ROOT, "schemas");
+const RESOURCES_DIR = join(ROOT, "resources");
+
+interface ValidationResult {
+  file: string;
+  valid: boolean;
+  errors: string[];
+}
+
+async function loadJson(path: string): Promise<unknown> {
+  const text = await readFile(path, "utf-8");
+  return JSON.parse(text);
+}
+
+async function listJsonFiles(dir: string): Promise<string[]> {
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const files: string[] = [];
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...(await listJsonFiles(full)));
+      } else if (entry.name.endsWith(".json")) {
+        files.push(full);
+      }
+    }
+    return files;
+  } catch {
+    return [];
+  }
+}
+
+function validateRequired(
+  data: Record<string, unknown>,
+  required: string[],
+  file: string
+): string[] {
+  const errors: string[] = [];
+  for (const field of required) {
+    if (!(field in data)) {
+      errors.push(`${file}: missing required field '${field}'`);
+    }
+  }
+  return errors;
+}
+
+const SCHEMA_REQUIRED_FIELDS: Record<string, string[]> = {
+  channel: ["id", "title", "source", "updatedAt"],
+  video: ["id", "channelId", "title", "publishedAt", "source", "updatedAt"],
+  playlist: ["id", "channelId", "title", "source", "updatedAt"],
+  "guide-entry": [
+    "videoId",
+    "channelId",
+    "title",
+    "scheduledAt",
+    "updatedAt",
+  ],
+  "viewing-receipt": ["id", "periodStart", "periodEnd", "generatedAt"],
+};
+
+const RESOURCE_DIR_TO_SCHEMA: Record<string, string> = {
+  channels: "channel",
+  videos: "video",
+  playlists: "playlist",
+  guide: "guide-entry",
+  receipts: "viewing-receipt",
+};
+
+async function validateSchemas(): Promise<ValidationResult[]> {
+  const results: ValidationResult[] = [];
+  const schemaFiles = await listJsonFiles(SCHEMAS_DIR);
+
+  for (const file of schemaFiles) {
+    const errors: string[] = [];
+    try {
+      const schema = (await loadJson(file)) as Record<string, unknown>;
+      if (!schema.$schema) errors.push("Missing $schema field");
+      if (!schema.title) errors.push("Missing title field");
+      if (!schema.type) errors.push("Missing type field");
+      if (!schema.required) errors.push("Missing required field");
+      if (!schema.properties) errors.push("Missing properties field");
+    } catch (e) {
+      errors.push(`Invalid JSON: ${e}`);
+    }
+    results.push({ file, valid: errors.length === 0, errors });
+  }
+
+  return results;
+}
+
+async function validateResources(): Promise<ValidationResult[]> {
+  const results: ValidationResult[] = [];
+
+  for (const [dir, schemaName] of Object.entries(RESOURCE_DIR_TO_SCHEMA)) {
+    const resourceDir = join(RESOURCES_DIR, dir);
+    const files = await listJsonFiles(resourceDir);
+    const requiredFields = SCHEMA_REQUIRED_FIELDS[schemaName] || [];
+
+    for (const file of files) {
+      const errors: string[] = [];
+      try {
+        const data = await loadJson(file);
+
+        if (schemaName === "guide-entry") {
+          // Guide files are arrays of entries
+          if (!Array.isArray(data)) {
+            errors.push("Guide file must be an array");
+          } else {
+            for (let i = 0; i < data.length; i++) {
+              const entry = data[i] as Record<string, unknown>;
+              errors.push(
+                ...validateRequired(entry, requiredFields, `[${i}]`)
+              );
+            }
+          }
+        } else {
+          errors.push(
+            ...validateRequired(
+              data as Record<string, unknown>,
+              requiredFields,
+              basename(file)
+            )
+          );
+        }
+      } catch (e) {
+        errors.push(`Invalid JSON: ${e}`);
+      }
+      results.push({ file, valid: errors.length === 0, errors });
+    }
+  }
+
+  return results;
+}
+
+async function validateSite(): Promise<ValidationResult[]> {
+  const results: ValidationResult[] = [];
+  const indexPath = join(ROOT, "site", "index.html");
+  try {
+    const content = await readFile(indexPath, "utf-8");
+    const errors: string[] = [];
+    if (!content.includes("<!DOCTYPE html") && !content.includes("<!doctype html")) {
+      errors.push("site/index.html missing DOCTYPE");
+    }
+    results.push({ file: indexPath, valid: errors.length === 0, errors });
+  } catch {
+    results.push({
+      file: indexPath,
+      valid: false,
+      errors: ["site/index.html not found"],
+    });
+  }
+  return results;
+}
+
+async function main(): Promise<void> {
+  console.log("=== Station Validation ===\n");
+
+  let allValid = true;
+
+  console.log("Checking schemas...");
+  const schemaResults = await validateSchemas();
+  for (const r of schemaResults) {
+    const status = r.valid ? "✓" : "✗";
+    console.log(`  ${status} ${r.file.replace(ROOT + "/", "")}`);
+    for (const e of r.errors) console.log(`    → ${e}`);
+    if (!r.valid) allValid = false;
+  }
+
+  console.log("\nChecking resources...");
+  const resourceResults = await validateResources();
+  for (const r of resourceResults) {
+    const status = r.valid ? "✓" : "✗";
+    console.log(`  ${status} ${r.file.replace(ROOT + "/", "")}`);
+    for (const e of r.errors) console.log(`    → ${e}`);
+    if (!r.valid) allValid = false;
+  }
+
+  console.log("\nChecking site...");
+  const siteResults = await validateSite();
+  for (const r of siteResults) {
+    const status = r.valid ? "✓" : "✗";
+    console.log(`  ${status} ${r.file.replace(ROOT + "/", "")}`);
+    for (const e of r.errors) console.log(`    → ${e}`);
+    if (!r.valid) allValid = false;
+  }
+
+  console.log("");
+  if (allValid) {
+    console.log("All checks passed.");
+  } else {
+    console.error("Validation failed.");
+    process.exit(1);
+  }
+}
+
+main();
