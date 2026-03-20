@@ -23,10 +23,21 @@ jobs:
           bun-version: latest
 
       - name: Run ingestion
+        id: ingest
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           INGEST_SCOPE: ${{ inputs.scope }}
-        run: bun run ingest
+        run: |
+          output=$(bun run ingest 2>&1)
+          echo "$output"
+          quota=$(echo "$output" | grep '^INGEST_QUOTA_TOTAL=' | cut -d= -f2)
+          echo "quota=${quota:-0}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate guide
+        env:
+          GUIDE_DATE: ${{ steps.ingest.outputs.date }}
+        run: bun run generate-guide
 
       - name: Check for resource changes
         id: changes
@@ -43,5 +54,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add resources/
-          git commit -m "ingest: update resources (${{ inputs.scope }})"
+          git commit -m "ingest: ${{ inputs.scope }} (${{ steps.ingest.outputs.date }}, ${{ steps.ingest.outputs.quota }} quota units)"
           git push

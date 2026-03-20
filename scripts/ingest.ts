@@ -279,16 +279,32 @@ async function ingestPlaylist(playlistId: string): Promise<void> {
 
   const playlistItem = playlistData.items[0];
 
-  // Fetch playlist items for video IDs (1 unit)
-  const playlistItemsData = (await youtubeGet("playlistItems", {
-    part: "snippet",
-    playlistId,
-    maxResults: "50",
-  }, 1)) as { items?: YouTubePlaylistItemEntry[] };
+  // Fetch all playlist items, paginating through results (1 unit per page)
+  const videoIds: string[] = [];
+  let pageToken: string | undefined = undefined;
 
-  const videoIds = (playlistItemsData.items || []).map(
-    (item) => item.snippet.resourceId.videoId
-  );
+  do {
+    const params: Record<string, string> = {
+      part: "snippet",
+      playlistId,
+      maxResults: "50",
+    };
+    if (pageToken) params.pageToken = pageToken;
+
+    const playlistItemsData = (await youtubeGet("playlistItems", params, 1)) as {
+      items?: YouTubePlaylistItemEntry[];
+      nextPageToken?: string;
+    };
+
+    const pageVideoIds = (playlistItemsData.items || []).map(
+      (item) => item.snippet.resourceId.videoId
+    );
+    videoIds.push(...pageVideoIds);
+
+    pageToken = playlistItemsData.nextPageToken;
+  } while (pageToken);
+
+  console.log(`  Found ${videoIds.length} videos in playlist`);
 
   const playlist: Record<string, unknown> = {
     id: playlistItem.id,
@@ -405,6 +421,10 @@ async function main(): Promise<void> {
     console.log(`  ${op.name}: ${op.cost} unit${op.cost === 1 ? "" : "s"}`);
   }
   console.log(`  Total: ${quota.total} unit${quota.total === 1 ? "" : "s"}`);
+
+  // Machine-readable summary for workflow capture
+  console.log(`\nINGEST_QUOTA_TOTAL=${quota.total}`);
+  console.log(`INGEST_SCOPE_USED=${INGEST_SCOPE}`);
 }
 
 main();
