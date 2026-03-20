@@ -8,17 +8,48 @@ This document describes the credentials, quota budget, and safety boundaries for
 |---|---|---|---|
 | `YOUTUBE_API_KEY` | API Key | Read-only access to public YouTube data | Repository Settings → Secrets → Actions |
 
-### OAuth (Future)
+### OAuth Credentials
 
-Some operations (e.g. caption downloads, user activity) require OAuth 2.0 credentials. When needed:
+OAuth credentials enable subscription intelligence — the highest-value signal for a personal station.
 
-| Secret | Type | Purpose |
-|---|---|---|
-| `YOUTUBE_CLIENT_ID` | OAuth | Application client ID |
-| `YOUTUBE_CLIENT_SECRET` | OAuth | Application client secret |
-| `YOUTUBE_REFRESH_TOKEN` | OAuth | Long-lived refresh token for user context |
+| Secret | Type | Purpose | Where to Set |
+|---|---|---|---|
+| `YOUTUBE_CLIENT_ID` | OAuth | Google Cloud application client ID | Repository Settings → Secrets → Actions |
+| `YOUTUBE_CLIENT_SECRET` | OAuth | Google Cloud application client secret | Repository Settings → Secrets → Actions |
+| `YOUTUBE_REFRESH_TOKEN` | OAuth | Long-lived refresh token for user context | Repository Settings → Secrets → Actions |
 
-OAuth credentials are not required for the initial scaffold. They will be added when the ingestion pipeline needs authenticated access.
+When OAuth credentials are not configured, the system falls back to API-key-only mode. It will read the existing `resources/subscriptions.json` index (if present) and fetch recent uploads for listed channels using the API key. The subscription list itself cannot be updated without OAuth.
+
+### One-Time OAuth Setup
+
+To obtain OAuth credentials:
+
+1. **Create a Google Cloud project** at [console.cloud.google.com](https://console.cloud.google.com/)
+2. **Enable the YouTube Data API v3** in the project's API library
+3. **Create OAuth 2.0 credentials** (type: Web application)
+   - Add `http://localhost:8080` as an authorized redirect URI
+4. **Note the Client ID and Client Secret** — these are `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET`
+5. **Obtain a refresh token** using the OAuth consent flow:
+
+   ```
+   # Open this URL in a browser and grant consent:
+   https://accounts.google.com/o/oauth2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost:8080&response_type=code&scope=https://www.googleapis.com/auth/youtube.readonly&access_type=offline&prompt=consent
+
+   # After consent, Google redirects to http://localhost:8080?code=AUTH_CODE
+   # Exchange the code for tokens:
+   curl -X POST https://oauth2.googleapis.com/token \
+     -d code=AUTH_CODE \
+     -d client_id=YOUR_CLIENT_ID \
+     -d client_secret=YOUR_CLIENT_SECRET \
+     -d redirect_uri=http://localhost:8080 \
+     -d grant_type=authorization_code
+
+   # The response contains a refresh_token — this is YOUTUBE_REFRESH_TOKEN
+   ```
+
+6. **Store all three values** as GitHub repository secrets
+
+The refresh token is long-lived and does not expire unless revoked. The ingestion script automatically exchanges it for short-lived access tokens as needed.
 
 ## API Key vs OAuth
 
@@ -75,6 +106,8 @@ These commands are safe to run locally without side effects:
 | Command | Effect | Guard |
 |---|---|---|
 | `bun run ingest` | May update `resources/` if API key is set | Requires `YOUTUBE_API_KEY` |
+| `bun run ingest` (subscriptions scope with OAuth) | Updates `resources/subscriptions.json`, `resources/channels/`, `resources/videos/` | Requires OAuth secrets |
+| `bun run ingest` (subscriptions scope without OAuth) | Updates `resources/videos/` from existing subscription index | Requires `YOUTUBE_API_KEY` and `resources/subscriptions.json` |
 
 ## Workflows and Write Behaviour
 
@@ -82,7 +115,7 @@ These commands are safe to run locally without side effects:
 |---|---|---|---|
 | `validate.yml` | Push to main, manual | No | No |
 | `ingest.yml` | Manual dispatch | Yes — commits to `resources/` | Yes |
-| `scheduled-ingest.yml` | Daily cron (06:00 UTC), manual | Yes — commits to `resources/` | Yes |
+| `scheduled-ingest.yml` | Daily cron (06:00 UTC), manual | Yes — commits subscriptions, channels, videos, and guide to `resources/` | Yes |
 | `publish.yml` | Push to main, manual | No — deploys to Pages | No |
 
 ## Safety Principles
