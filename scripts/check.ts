@@ -69,6 +69,7 @@ const SCHEMA_REQUIRED_FIELDS: Record<string, string[]> = {
     "updatedAt",
   ],
   "viewing-receipt": ["id", "periodStart", "periodEnd", "generatedAt"],
+  subscriptions: ["channels", "totalCount", "updatedAt"],
 };
 
 const RESOURCE_DIR_TO_SCHEMA: Record<string, string> = {
@@ -140,6 +141,34 @@ async function validateResources(): Promise<ValidationResult[]> {
       }
       results.push({ file, valid: errors.length === 0, errors });
     }
+  }
+
+  // Validate top-level subscription index if present
+  const subscriptionsPath = join(RESOURCES_DIR, "subscriptions.json");
+  try {
+    const data = await loadJson(subscriptionsPath);
+    const errors: string[] = [];
+    const requiredFields = SCHEMA_REQUIRED_FIELDS["subscriptions"] || [];
+    errors.push(
+      ...validateRequired(
+        data as Record<string, unknown>,
+        requiredFields,
+        "subscriptions.json"
+      )
+    );
+    const typed = data as Record<string, unknown>;
+    if (!Array.isArray(typed.channels)) {
+      errors.push("subscriptions.json: 'channels' must be an array");
+    } else {
+      for (let i = 0; i < typed.channels.length; i++) {
+        const ch = typed.channels[i] as Record<string, unknown>;
+        if (!ch.channelId) errors.push(`subscriptions.json: channels[${i}] missing 'channelId'`);
+        if (!ch.title) errors.push(`subscriptions.json: channels[${i}] missing 'title'`);
+      }
+    }
+    results.push({ file: subscriptionsPath, valid: errors.length === 0, errors });
+  } catch {
+    // subscriptions.json is optional — only validate if present
   }
 
   return results;
