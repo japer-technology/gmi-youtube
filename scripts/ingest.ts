@@ -282,7 +282,7 @@ async function ingestPlaylist(playlistId: string): Promise<void> {
   // Fetch playlist items for video IDs (1 unit)
   const playlistItemsData = (await youtubeGet("playlistItems", {
     part: "snippet",
-    playlistId: playlistId,
+    playlistId,
     maxResults: "50",
   }, 1)) as { items?: YouTubePlaylistItemEntry[] };
 
@@ -354,21 +354,24 @@ async function main(): Promise<void> {
     return;
   }
 
+  const CHANNEL_PREFIX = "channel:";
+  const PLAYLIST_PREFIX = "playlist:";
+
   console.log(`API key: present`);
   console.log(`Scope:   ${INGEST_SCOPE}\n`);
 
   try {
-    if (INGEST_SCOPE.startsWith("channel:")) {
-      const channelId = INGEST_SCOPE.slice("channel:".length).trim();
+    if (INGEST_SCOPE.startsWith(CHANNEL_PREFIX)) {
+      const channelId = INGEST_SCOPE.slice(CHANNEL_PREFIX.length).trim();
       if (!channelId) {
-        console.log("✗ channel: scope requires a channel ID (e.g. channel:UCxxxxxx)");
+        console.log(`✗ ${CHANNEL_PREFIX} scope requires a channel ID (e.g. channel:UCxxxxxx)`);
         process.exit(1);
       }
       await ingestChannel(channelId);
-    } else if (INGEST_SCOPE.startsWith("playlist:")) {
-      const playlistId = INGEST_SCOPE.slice("playlist:".length).trim();
+    } else if (INGEST_SCOPE.startsWith(PLAYLIST_PREFIX)) {
+      const playlistId = INGEST_SCOPE.slice(PLAYLIST_PREFIX.length).trim();
       if (!playlistId) {
-        console.log("✗ playlist: scope requires a playlist ID (e.g. playlist:PLxxxxxx)");
+        console.log(`✗ ${PLAYLIST_PREFIX} scope requires a playlist ID (e.g. playlist:PLxxxxxx)`);
         process.exit(1);
       }
       await ingestPlaylist(playlistId);
