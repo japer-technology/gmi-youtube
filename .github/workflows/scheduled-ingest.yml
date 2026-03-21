@@ -46,7 +46,6 @@ jobs:
         run: bun run generate-receipt
 
       - name: Generate weekly receipt (Sunday only)
-        if: contains('0', github.event.schedule && '0' || '0')
         env:
           RECEIPT_DATE: ${{ steps.ingest.outputs.date }}
           RECEIPT_PERIOD: week
