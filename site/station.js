@@ -17,6 +17,11 @@
  * - Live, upcoming, and stale-state indicators
  * - Embedded YouTube players with thumbnail fallback
  * - Layout switching and playback preference controls
+ *
+ * The receipt page renders viewing receipts with:
+ * - List of all available receipts
+ * - Detail view with stats, arrived/skipped content, channel distribution
+ * - Curator notes
  */
 
 (function () {
@@ -533,6 +538,204 @@
     renderCurrent();
   }
 
+  // --- Receipt support ---
+
+  function formatDate(iso) {
+    try {
+      var d = new Date(iso);
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    } catch (_e) {
+      return iso;
+    }
+  }
+
+  function formatMinutes(minutes) {
+    if (!minutes || minutes <= 0) return "0m";
+    var h = Math.floor(minutes / 60);
+    var m = minutes % 60;
+    if (h > 0) return h + "h " + m + "m";
+    return m + "m";
+  }
+
+  function renderReceiptCard(receipt) {
+    var periodLabel = formatDate(receipt.periodStart) + " – " + formatDate(receipt.periodEnd);
+    var stats = receipt.stats || {};
+    var html = '<div class="receipt-card" data-receipt-id="' + receipt.id + '">';
+    html += '<div class="receipt-card-header">';
+    html += '<span class="receipt-card-id">' + receipt.id + '</span>';
+    html += '<span class="receipt-card-period">' + periodLabel + '</span>';
+    html += '</div>';
+    html += '<div class="receipt-card-stats">';
+    html += '<span>Arrived: ' + (stats.totalArrived || 0) + '</span>';
+    html += '<span>Skipped: ' + (stats.totalSkipped || 0) + '</span>';
+    if (stats.totalDurationMinutes) {
+      html += '<span>Duration: ' + formatMinutes(stats.totalDurationMinutes) + '</span>';
+    }
+    html += '</div>';
+    if (receipt.curatorNotes) {
+      html += '<div class="receipt-card-notes">' + receipt.curatorNotes + '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderReceiptDetail(receipt) {
+    var stats = receipt.stats || {};
+    var html = '';
+
+    // Header
+    html += '<div class="receipt-header">';
+    html += '<h3>' + receipt.id + '</h3>';
+    html += '<div class="receipt-period">' + formatDate(receipt.periodStart) + ' – ' + formatDate(receipt.periodEnd) + '</div>';
+    html += '</div>';
+
+    // Stats grid
+    html += '<div class="receipt-stats-grid">';
+    html += '<div class="receipt-stat"><span class="receipt-stat-value">' + (stats.totalArrived || 0) + '</span><span class="receipt-stat-label">Arrived</span></div>';
+    html += '<div class="receipt-stat"><span class="receipt-stat-value">' + (stats.totalWatched || 0) + '</span><span class="receipt-stat-label">Watched</span></div>';
+    html += '<div class="receipt-stat"><span class="receipt-stat-value">' + (stats.totalSkipped || 0) + '</span><span class="receipt-stat-label">Skipped</span></div>';
+    if (stats.totalDurationMinutes) {
+      html += '<div class="receipt-stat"><span class="receipt-stat-value">' + formatMinutes(stats.totalDurationMinutes) + '</span><span class="receipt-stat-label">Duration</span></div>';
+    }
+    html += '</div>';
+
+    // Curator notes
+    if (receipt.curatorNotes) {
+      html += '<div class="receipt-notes">' + receipt.curatorNotes + '</div>';
+    }
+
+    // Channel distribution
+    if (stats.channelDistribution && Object.keys(stats.channelDistribution).length > 0) {
+      html += '<div class="receipt-section">';
+      html += '<h4>Channel Distribution</h4>';
+      html += '<div class="receipt-channel-dist">';
+      var channels = Object.keys(stats.channelDistribution);
+      for (var i = 0; i < channels.length; i++) {
+        html += '<span class="receipt-channel-tag">' + channels[i];
+        html += ' <span class="receipt-channel-count">' + stats.channelDistribution[channels[i]] + '</span>';
+        html += '</span>';
+      }
+      html += '</div></div>';
+    }
+
+    // Arrived videos
+    if (receipt.arrived && receipt.arrived.length > 0) {
+      html += '<div class="receipt-section">';
+      html += '<h4>Arrived (' + receipt.arrived.length + ')</h4>';
+      html += '<div class="receipt-video-list">';
+      for (var a = 0; a < receipt.arrived.length; a++) {
+        var av = receipt.arrived[a];
+        html += '<div class="receipt-video">';
+        html += '<a class="receipt-video-title" href="https://www.youtube.com/watch?v=' + encodeURIComponent(av.videoId) + '" target="_blank" rel="noopener">' + av.title + '</a>';
+        if (av.channelTitle) {
+          html += '<div class="receipt-video-channel">' + av.channelTitle + '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div></div>';
+    }
+
+    // Watched videos
+    if (receipt.watched && receipt.watched.length > 0) {
+      html += '<div class="receipt-section">';
+      html += '<h4>Watched (' + receipt.watched.length + ')</h4>';
+      html += '<div class="receipt-video-list">';
+      for (var w = 0; w < receipt.watched.length; w++) {
+        var wv = receipt.watched[w];
+        html += '<div class="receipt-video">';
+        html += '<a class="receipt-video-title" href="https://www.youtube.com/watch?v=' + encodeURIComponent(wv.videoId) + '" target="_blank" rel="noopener">' + wv.title + '</a>';
+        if (wv.channelTitle) {
+          html += '<div class="receipt-video-channel">' + wv.channelTitle + '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div></div>';
+    }
+
+    // Skipped videos
+    if (receipt.skipped && receipt.skipped.length > 0) {
+      html += '<div class="receipt-section">';
+      html += '<h4>Skipped (' + receipt.skipped.length + ')</h4>';
+      html += '<div class="receipt-video-list">';
+      for (var s = 0; s < receipt.skipped.length; s++) {
+        var sv = receipt.skipped[s];
+        html += '<div class="receipt-video">';
+        html += '<a class="receipt-video-title" href="https://www.youtube.com/watch?v=' + encodeURIComponent(sv.videoId) + '" target="_blank" rel="noopener">' + sv.title + '</a>';
+        if (sv.channelTitle) {
+          html += '<div class="receipt-video-channel">' + sv.channelTitle + '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div></div>';
+    }
+
+    return html;
+  }
+
+  function initReceipts(receipts) {
+    var listContainer = document.getElementById("receipt-list");
+    var detailContainer = document.getElementById("receipt-detail");
+    var contentContainer = document.getElementById("receipt-content");
+    var backBtn = document.getElementById("receipt-back");
+
+    if (!listContainer || !detailContainer || !contentContainer) return;
+
+    // Sort receipts by periodEnd descending (most recent first)
+    receipts.sort(function (a, b) {
+      return new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime();
+    });
+
+    function showList() {
+      detailContainer.style.display = "none";
+      listContainer.style.display = "";
+      window.location.hash = "";
+
+      if (receipts.length === 0) {
+        listContainer.innerHTML = '<p class="placeholder">No viewing receipts available yet.</p>';
+        return;
+      }
+
+      var html = '<div class="receipt-list-grid">';
+      for (var i = 0; i < receipts.length; i++) {
+        html += renderReceiptCard(receipts[i]);
+      }
+      html += '</div>';
+      listContainer.innerHTML = html;
+
+      // Attach click handlers
+      var cards = listContainer.querySelectorAll(".receipt-card");
+      for (var j = 0; j < cards.length; j++) {
+        cards[j].addEventListener("click", (function (idx) {
+          return function () { showDetail(receipts[idx]); };
+        })(j));
+      }
+    }
+
+    function showDetail(receipt) {
+      listContainer.style.display = "none";
+      detailContainer.style.display = "";
+      window.location.hash = receipt.id;
+      contentContainer.innerHTML = renderReceiptDetail(receipt);
+    }
+
+    if (backBtn) {
+      backBtn.addEventListener("click", showList);
+    }
+
+    // Check URL hash for a receipt ID
+    if (window.location.hash) {
+      var hashId = window.location.hash.slice(1);
+      for (var r = 0; r < receipts.length; r++) {
+        if (receipts[r].id === hashId) {
+          showDetail(receipts[r]);
+          return;
+        }
+      }
+    }
+
+    showList();
+  }
+
   async function loadManifest() {
     var manifest = await fetchJson("manifest.json");
     if (!manifest) {
@@ -669,6 +872,19 @@
       }
     } else if (channelWall) {
       renderChannelWall(channels, channelWall);
+    }
+
+    // Receipt page: viewing receipt list and detail view
+    var receiptList = document.getElementById("receipt-list");
+    if (receiptList) {
+      var receipts = [];
+      if (manifest.receipts) {
+        for (var ri = 0; ri < manifest.receipts.length; ri++) {
+          var receipt = await fetchJson(manifest.receipts[ri]);
+          if (receipt) receipts.push(receipt);
+        }
+      }
+      initReceipts(receipts);
     }
   }
 
