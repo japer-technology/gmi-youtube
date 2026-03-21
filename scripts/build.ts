@@ -63,6 +63,16 @@ async function main(): Promise<void> {
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
   console.log(`Generated manifest: ${Object.keys(manifest).length} resource types`);
 
+  // Build search index
+  console.log("Building search index...");
+  const buildSearchIndex = join(import.meta.dir, "build-search-index.ts");
+  const proc = Bun.spawn(["bun", "run", buildSearchIndex], {
+    cwd: ROOT,
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+  await proc.exited;
+
   console.log("\nBuild complete → dist/");
 }
 

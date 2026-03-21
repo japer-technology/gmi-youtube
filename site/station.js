@@ -22,6 +22,11 @@
  * - List of all available receipts
  * - Detail view with stats, arrived/skipped content, channel distribution
  * - Curator notes
+ *
+ * The search page provides keyword search across:
+ * - Video titles, descriptions, and tags
+ * - Downloaded transcripts with timestamp deep-linking
+ * - Ranked results using a static inverted index
  */
 
 (function () {
@@ -736,6 +741,209 @@
     showList();
   }
 
+  // --- Search support ---
+
+  function loadSearchIndex() {
+    return fetch("search-index.json").then(function (res) {
+      if (!res.ok) return null;
+      return res.json();
+    }).catch(function () {
+      return null;
+    });
+  }
+
+  function searchTokenize(text) {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/)
+      .filter(function (t) { return t.length > 1; });
+  }
+
+  function searchQuery(index, query) {
+    var queryTerms = searchTokenize(query);
+    if (queryTerms.length === 0 || !index || !index.terms || !index.documents) return [];
+
+    // Score each document by summing term matches
+    var docScores = {};
+    for (var t = 0; t < queryTerms.length; t++) {
+      var term = queryTerms[t];
+      var postings = index.terms[term];
+      if (!postings) continue;
+      for (var p = 0; p < postings.length; p++) {
+        var docIdx = postings[p].doc;
+        var score = postings[p].score;
+        docScores[docIdx] = (docScores[docIdx] || 0) + score;
+      }
+    }
+
+    // Convert to sorted array
+    var results = [];
+    for (var docIdxStr in docScores) {
+      if (docScores.hasOwnProperty(docIdxStr)) {
+        var idx = parseInt(docIdxStr, 10);
+        results.push({ doc: index.documents[idx], score: docScores[idx] });
+      }
+    }
+    results.sort(function (a, b) { return b.score - a.score; });
+    return results;
+  }
+
+  function formatTimestamp(seconds) {
+    var h = Math.floor(seconds / 3600);
+    var m = Math.floor((seconds % 3600) / 60);
+    var s = Math.floor(seconds % 60);
+    if (h > 0) {
+      return h + ":" + m.toString().padStart(2, "0") + ":" + s.toString().padStart(2, "0");
+    }
+    return m + ":" + s.toString().padStart(2, "0");
+  }
+
+  function highlightText(text, queryTerms) {
+    if (!queryTerms || queryTerms.length === 0) return text;
+    // Build a regex to match any query term (word boundary)
+    var escaped = queryTerms.map(function (t) {
+      return t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    });
+    var regex = new RegExp("(" + escaped.join("|") + ")", "gi");
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+  }
+
+  function findMatchingSegments(segments, queryTerms, maxResults) {
+    if (!segments || !queryTerms || queryTerms.length === 0) return [];
+    var matches = [];
+    for (var i = 0; i < segments.length; i++) {
+      var seg = segments[i];
+      var lower = seg.text.toLowerCase();
+      for (var t = 0; t < queryTerms.length; t++) {
+        if (lower.indexOf(queryTerms[t]) !== -1) {
+          matches.push(seg);
+          break;
+        }
+      }
+      if (matches.length >= maxResults) break;
+    }
+    return matches;
+  }
+
+  function renderSearchResults(results, queryTerms, container) {
+    if (results.length === 0) {
+      container.innerHTML = '<p class="placeholder">No results found. Try different keywords.</p>';
+      return;
+    }
+
+    var html = '<div class="search-results-list">';
+
+    // Limit to top 50 results
+    var limit = Math.min(results.length, 50);
+    for (var i = 0; i < limit; i++) {
+      var doc = results[i].doc;
+      var videoUrl = "https://www.youtube.com/watch?v=" + encodeURIComponent(doc.videoId);
+
+      html += '<div class="search-result">';
+      html += '<div class="search-result-header">';
+
+      // Thumbnail
+      if (doc.thumbnailUrl) {
+        html += '<img class="search-result-thumb" src="' + doc.thumbnailUrl + '" alt="" loading="lazy">';
+      }
+
+      html += '<div class="search-result-info">';
+      html += '<a class="search-result-title" href="' + videoUrl + '" target="_blank" rel="noopener">';
+      html += highlightText(doc.title, queryTerms);
+      html += '</a>';
+      if (doc.hasTranscript) {
+        html += '<span class="badge">TRANSCRIPT</span>';
+      }
+
+      html += '<div class="search-result-meta">';
+      if (doc.channelTitle) html += highlightText(doc.channelTitle, queryTerms);
+      if (doc.duration) html += ' · ' + formatDuration(doc.duration);
+      if (doc.publishedAt) html += ' · ' + formatDate(doc.publishedAt);
+      html += '</div>';
+
+      // Description snippet
+      if (doc.description) {
+        var descSnippet = doc.description.length > 200 ? doc.description.slice(0, 200) + "…" : doc.description;
+        html += '<div class="search-result-description">' + highlightText(descSnippet, queryTerms) + '</div>';
+      }
+
+      html += '</div></div>';
+
+      // Transcript matches with timestamps
+      if (doc.hasTranscript && doc.transcriptSegments) {
+        var matchingSegs = findMatchingSegments(doc.transcriptSegments, queryTerms, 3);
+        if (matchingSegs.length > 0) {
+          html += '<div class="search-result-transcript">';
+          html += '<div class="search-result-transcript-label">Transcript matches</div>';
+          html += '<div class="search-result-segments">';
+          for (var s = 0; s < matchingSegs.length; s++) {
+            var seg = matchingSegs[s];
+            var startSec = Math.floor(seg.start);
+            var tsUrl = videoUrl + "&t=" + startSec + "s";
+            html += '<div class="search-result-segment">';
+            html += '<a class="search-result-timestamp" href="' + tsUrl + '" target="_blank" rel="noopener">';
+            html += formatTimestamp(seg.start) + '</a>';
+            html += '<span class="search-result-segment-text">' + highlightText(seg.text, queryTerms) + '</span>';
+            html += '</div>';
+          }
+          html += '</div></div>';
+        }
+      }
+
+      html += '</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function initSearch(searchIndex) {
+    var input = document.getElementById("search-input");
+    var btn = document.getElementById("search-btn");
+    var status = document.getElementById("search-status");
+    var results = document.getElementById("search-results");
+
+    if (!input || !btn || !results) return;
+
+    if (!searchIndex) {
+      status.textContent = "Search index not available. Run a build to generate it.";
+      return;
+    }
+
+    status.textContent = searchIndex.documents.length + " videos indexed";
+
+    function doSearch() {
+      var query = input.value.trim();
+      if (!query) {
+        results.innerHTML = '<p class="placeholder">Enter a query to search across your video library.</p>';
+        status.textContent = searchIndex.documents.length + " videos indexed";
+        window.location.hash = "";
+        return;
+      }
+
+      window.location.hash = "q=" + encodeURIComponent(query);
+      var queryTerms = searchTokenize(query);
+      var searchResults = searchQuery(searchIndex, query);
+      status.textContent = searchResults.length + " result" + (searchResults.length === 1 ? "" : "s") + ' for "' + query + '"';
+      renderSearchResults(searchResults, queryTerms, results);
+    }
+
+    btn.addEventListener("click", doSearch);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") doSearch();
+    });
+
+    // Restore query from URL hash
+    if (window.location.hash && window.location.hash.indexOf("q=") !== -1) {
+      var hashQuery = decodeURIComponent(window.location.hash.slice(window.location.hash.indexOf("q=") + 2));
+      if (hashQuery) {
+        input.value = hashQuery;
+        doSearch();
+      }
+    }
+  }
+
   async function loadManifest() {
     var manifest = await fetchJson("manifest.json");
     if (!manifest) {
@@ -885,6 +1093,13 @@
         }
       }
       initReceipts(receipts);
+    }
+
+    // Search page: keyword search across video library
+    var searchResults = document.getElementById("search-results");
+    if (searchResults) {
+      var searchIndex = await loadSearchIndex();
+      initSearch(searchIndex);
     }
   }
 

@@ -72,6 +72,7 @@ const SCHEMA_REQUIRED_FIELDS: Record<string, string[]> = {
   subscriptions: ["channels", "totalCount", "updatedAt"],
   "guide-config": ["blocks", "updatedAt"],
   "wall-layout": ["name", "rows", "cols", "channels"],
+  transcript: ["videoId", "language", "segments", "source", "updatedAt"],
 };
 
 const RESOURCE_DIR_TO_SCHEMA: Record<string, string> = {
@@ -80,6 +81,7 @@ const RESOURCE_DIR_TO_SCHEMA: Record<string, string> = {
   playlists: "playlist",
   guide: "guide-entry",
   receipts: "viewing-receipt",
+  transcripts: "transcript",
 };
 
 async function validateSchemas(): Promise<ValidationResult[]> {
