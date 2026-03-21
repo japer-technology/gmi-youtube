@@ -1,0 +1,47 @@
+{
+  "blocks": [
+    {
+      "name": "morning",
+      "startHour": 6,
+      "endHour": 10,
+      "character": "Short-form, news, briefings",
+      "maxDurationMinutes": 30,
+      "preferredTags": ["news", "briefing", "short-form"]
+    },
+    {
+      "name": "midday",
+      "startHour": 10,
+      "endHour": 14,
+      "character": "Medium-form, tutorials, talks",
+      "maxDurationMinutes": 60,
+      "preferredTags": ["tutorial", "talk", "how-to"]
+    },
+    {
+      "name": "afternoon",
+      "startHour": 14,
+      "endHour": 18,
+      "character": "Long-form, documentaries, deep dives",
+      "maxDurationMinutes": 180,
+      "preferredTags": ["documentary", "deep-dive", "long-form"]
+    },
+    {
+      "name": "evening",
+      "startHour": 18,
+      "endHour": 22,
+      "character": "Flagship content, curated highlights",
+      "maxDurationMinutes": 120,
+      "preferredTags": ["flagship", "highlight", "curated"]
+    },
+    {
+      "name": "late",
+      "startHour": 22,
+      "endHour": 26,
+      "character": "Calm, ambient, rewatchable",
+      "maxDurationMinutes": 240,
+      "preferredTags": ["ambient", "calm", "relaxation"]
+    }
+  ],
+  "bufferMinutes": 15,
+  "defaultDurationMinutes": 30,
+  "updatedAt": "2026-03-19T00:00:00Z"
+}
