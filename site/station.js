@@ -133,7 +133,7 @@
     { name: "late", startHour: 22, endHour: 26, character: "Calm, ambient, rewatchable" }
   ];
 
-  function capitalise(str) {
+  function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
@@ -172,7 +172,7 @@
 
       html += '<div class="guide-block">';
       html += '<div class="guide-block-header">';
-      html += '<h3 class="guide-block-name">' + capitalise(block.name) + '</h3>';
+      html += '<h3 class="guide-block-name">' + capitalize(block.name) + '</h3>';
       html += '<span class="guide-block-time">' + startLabel + ' – ' + endLabel + '</span>';
       if (block.character) {
         html += '<span class="guide-block-character">' + block.character + '</span>';
