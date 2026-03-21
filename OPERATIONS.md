@@ -108,6 +108,8 @@ These commands are safe to run locally without side effects:
 | `bun run ingest` | May update `resources/` if API key is set | Requires `YOUTUBE_API_KEY` |
 | `bun run ingest` (subscriptions scope with OAuth) | Updates `resources/subscriptions.json`, `resources/channels/`, `resources/videos/` | Requires OAuth secrets |
 | `bun run ingest` (subscriptions scope without OAuth) | Updates `resources/videos/` from existing subscription index | Requires `YOUTUBE_API_KEY` and `resources/subscriptions.json` |
+| `bun run generate-guide` | Writes `resources/guide/<date>.json` from ingested videos | Requires ingested video resources; env `GUIDE_DATE` |
+| `bun run generate-receipt` | Writes `resources/receipts/receipt-<date>.json` from guide and video data | Requires guide and video resources; env `RECEIPT_DATE`, `RECEIPT_PERIOD`, `RECEIPT_FORCE` |
 
 ## Workflows and Write Behaviour
 

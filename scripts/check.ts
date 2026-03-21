@@ -240,21 +240,33 @@ async function validateResources(): Promise<ValidationResult[]> {
 
 async function validateSite(): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
-  const indexPath = join(ROOT, "site", "index.html");
-  try {
-    const content = await readFile(indexPath, "utf-8");
-    const errors: string[] = [];
-    if (!content.includes("<!DOCTYPE html") && !content.includes("<!doctype html")) {
-      errors.push("site/index.html missing DOCTYPE");
+
+  const requiredPages = [
+    "index.html",
+    "guide.html",
+    "wall.html",
+    "receipt.html",
+    "search.html",
+  ];
+
+  for (const page of requiredPages) {
+    const pagePath = join(ROOT, "site", page);
+    try {
+      const content = await readFile(pagePath, "utf-8");
+      const errors: string[] = [];
+      if (!content.includes("<!DOCTYPE html") && !content.includes("<!doctype html")) {
+        errors.push(`site/${page} missing DOCTYPE`);
+      }
+      results.push({ file: pagePath, valid: errors.length === 0, errors });
+    } catch {
+      results.push({
+        file: pagePath,
+        valid: false,
+        errors: [`site/${page} not found`],
+      });
     }
-    results.push({ file: indexPath, valid: errors.length === 0, errors });
-  } catch {
-    results.push({
-      file: indexPath,
-      valid: false,
-      errors: ["site/index.html not found"],
-    });
   }
+
   return results;
 }
 

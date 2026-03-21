@@ -22,6 +22,10 @@
   "stats": {
     "totalWatched": 1,
     "totalArrived": 1,
-    "totalSkipped": 0
+    "totalSkipped": 0,
+    "totalDurationMinutes": 135,
+    "channelDistribution": {
+      "TRAVIS": 1
+    }
   }
 }
