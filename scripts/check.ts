@@ -70,6 +70,7 @@ const SCHEMA_REQUIRED_FIELDS: Record<string, string[]> = {
   ],
   "viewing-receipt": ["id", "periodStart", "periodEnd", "generatedAt"],
   subscriptions: ["channels", "totalCount", "updatedAt"],
+  "guide-config": ["blocks", "updatedAt"],
 };
 
 const RESOURCE_DIR_TO_SCHEMA: Record<string, string> = {
@@ -169,6 +170,36 @@ async function validateResources(): Promise<ValidationResult[]> {
     results.push({ file: subscriptionsPath, valid: errors.length === 0, errors });
   } catch {
     // subscriptions.json is optional — only validate if present
+  }
+
+  // Validate guide-config.json if present
+  const guideConfigPath = join(RESOURCES_DIR, "guide-config.json");
+  try {
+    const data = await loadJson(guideConfigPath);
+    const errors: string[] = [];
+    const requiredFields = SCHEMA_REQUIRED_FIELDS["guide-config"] || [];
+    errors.push(
+      ...validateRequired(
+        data as Record<string, unknown>,
+        requiredFields,
+        "guide-config.json"
+      )
+    );
+    const typed = data as Record<string, unknown>;
+    if (!Array.isArray(typed.blocks)) {
+      errors.push("guide-config.json: 'blocks' must be an array");
+    } else {
+      for (let i = 0; i < typed.blocks.length; i++) {
+        const block = typed.blocks[i] as Record<string, unknown>;
+        if (!block.name) errors.push(`guide-config.json: blocks[${i}] missing 'name'`);
+        if (block.startHour === undefined) errors.push(`guide-config.json: blocks[${i}] missing 'startHour'`);
+        if (block.endHour === undefined) errors.push(`guide-config.json: blocks[${i}] missing 'endHour'`);
+        if (!block.character) errors.push(`guide-config.json: blocks[${i}] missing 'character'`);
+      }
+    }
+    results.push({ file: guideConfigPath, valid: errors.length === 0, errors });
+  } catch {
+    // guide-config.json is optional — only validate if present
   }
 
   return results;
