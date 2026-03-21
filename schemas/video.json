@@ -51,6 +51,21 @@
       "enum": ["none", "live", "upcoming"],
       "description": "Live broadcast state"
     },
+    "premiereAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of scheduled premiere or live start time"
+    },
+    "liveStartedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when a live stream actually started"
+    },
+    "liveEndedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when a live stream ended"
+    },
     "captionsAvailable": {
       "type": "boolean",
       "description": "Whether captions are available for this video"

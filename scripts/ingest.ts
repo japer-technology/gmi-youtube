@@ -165,7 +165,13 @@ interface YouTubeVideoItem {
     viewCount?: string;
     likeCount?: string;
   };
-  liveStreamingDetails?: Record<string, unknown>;
+  liveStreamingDetails?: {
+    scheduledStartTime?: string;
+    actualStartTime?: string;
+    actualEndTime?: string;
+    concurrentViewers?: string;
+    activeLiveChatId?: string;
+  };
   status?: {
     uploadStatus?: string;
   };
@@ -264,7 +270,24 @@ function normalizeVideo(item: YouTubeVideoItem): Record<string, unknown> {
     video.likeCount = parseInt(item.statistics.likeCount, 10);
   }
   if (item.liveStreamingDetails) {
-    video.liveBroadcastContent = "live";
+    const lsd = item.liveStreamingDetails;
+    // Determine live state from streaming details
+    if (lsd.actualEndTime) {
+      // Stream has ended — it was live but is now a VOD
+      video.liveBroadcastContent = "none";
+      video.liveStartedAt = lsd.actualStartTime;
+      video.liveEndedAt = lsd.actualEndTime;
+    } else if (lsd.actualStartTime) {
+      // Stream has started but not ended — currently live
+      video.liveBroadcastContent = "live";
+      video.liveStartedAt = lsd.actualStartTime;
+    } else if (lsd.scheduledStartTime) {
+      // Has a scheduled start but hasn't started — upcoming premiere or live stream
+      video.liveBroadcastContent = "upcoming";
+      video.premiereAt = lsd.scheduledStartTime;
+    } else {
+      video.liveBroadcastContent = "live";
+    }
   } else {
     video.liveBroadcastContent = "none";
   }
