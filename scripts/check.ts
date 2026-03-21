@@ -282,6 +282,15 @@ async function validateSite(): Promise<ValidationResult[]> {
     "curator.html",
   ];
 
+  const expectedScreenRoles: Record<string, string> = {
+    "index.html": "home",
+    "guide.html": "guide",
+    "wall.html": "wall",
+    "receipt.html": "receipt",
+    "search.html": "search",
+    "curator.html": "curator",
+  };
+
   for (const page of requiredPages) {
     const pagePath = join(ROOT, "site", page);
     try {
@@ -289,6 +298,10 @@ async function validateSite(): Promise<ValidationResult[]> {
       const errors: string[] = [];
       if (!content.includes("<!DOCTYPE html") && !content.includes("<!doctype html")) {
         errors.push(`site/${page} missing DOCTYPE`);
+      }
+      const expectedRole = expectedScreenRoles[page];
+      if (expectedRole && !content.includes(`data-screen-role="${expectedRole}"`)) {
+        errors.push(`site/${page} missing data-screen-role="${expectedRole}"`);
       }
       results.push({ file: pagePath, valid: errors.length === 0, errors });
     } catch {
