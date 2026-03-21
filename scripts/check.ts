@@ -73,6 +73,7 @@ const SCHEMA_REQUIRED_FIELDS: Record<string, string[]> = {
   "guide-config": ["blocks", "updatedAt"],
   "wall-layout": ["name", "rows", "cols", "channels"],
   transcript: ["videoId", "language", "segments", "source", "updatedAt"],
+  "curator-state": ["version", "updatedAt", "channelAffinities", "topicPreferences", "formatPreferences"],
 };
 
 const RESOURCE_DIR_TO_SCHEMA: Record<string, string> = {
@@ -235,6 +236,37 @@ async function validateResources(): Promise<ValidationResult[]> {
     // wall-layouts.json is optional — only validate if present
   }
 
+  // Validate curator-state.json if present
+  const curatorStatePath = join(RESOURCES_DIR, "curator-state.json");
+  try {
+    const data = await loadJson(curatorStatePath);
+    const errors: string[] = [];
+    const requiredFields = SCHEMA_REQUIRED_FIELDS["curator-state"] || [];
+    errors.push(
+      ...validateRequired(
+        data as Record<string, unknown>,
+        requiredFields,
+        "curator-state.json"
+      )
+    );
+    const typed = data as Record<string, unknown>;
+    if (typeof typed.version !== "string") {
+      errors.push("curator-state.json: 'version' must be a string");
+    }
+    if (typeof typed.channelAffinities !== "object" || typed.channelAffinities === null || Array.isArray(typed.channelAffinities)) {
+      errors.push("curator-state.json: 'channelAffinities' must be an object");
+    }
+    if (typeof typed.topicPreferences !== "object" || typed.topicPreferences === null || Array.isArray(typed.topicPreferences)) {
+      errors.push("curator-state.json: 'topicPreferences' must be an object");
+    }
+    if (typeof typed.formatPreferences !== "object" || typed.formatPreferences === null || Array.isArray(typed.formatPreferences)) {
+      errors.push("curator-state.json: 'formatPreferences' must be an object");
+    }
+    results.push({ file: curatorStatePath, valid: errors.length === 0, errors });
+  } catch {
+    // curator-state.json is optional — only validate if present
+  }
+
   return results;
 }
 
@@ -247,6 +279,7 @@ async function validateSite(): Promise<ValidationResult[]> {
     "wall.html",
     "receipt.html",
     "search.html",
+    "curator.html",
   ];
 
   for (const page of requiredPages) {

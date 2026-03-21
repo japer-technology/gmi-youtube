@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://gmi-youtube.github.io/schemas/curator-state.json",
+  "title": "Curator State",
+  "description": "Persistent learning state for the Intelligent Curator",
+  "type": "object",
+  "required": ["version", "updatedAt", "channelAffinities", "topicPreferences", "formatPreferences"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version for forward compatibility"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last state update"
+    },
+    "channelAffinities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["featuredCount", "skippedCount", "score"],
+        "properties": {
+          "featuredCount": { "type": "integer", "minimum": 0 },
+          "skippedCount": { "type": "integer", "minimum": 0 },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "additionalProperties": false
+      },
+      "description": "Per-channel affinity scores derived from receipts"
+    },
+    "topicPreferences": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["featuredCount", "score"],
+        "properties": {
+          "featuredCount": { "type": "integer", "minimum": 0 },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "additionalProperties": false
+      },
+      "description": "Topic preference scores from viewing patterns"
+    },
+    "formatPreferences": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["featuredCount", "score"],
+        "properties": {
+          "featuredCount": { "type": "integer", "minimum": 0 },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "additionalProperties": false
+      },
+      "description": "Format preference scores (short-form, long-form, live, etc.)"
+    },
+    "recentDecisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "action", "summary"],
+        "properties": {
+          "date": { "type": "string", "format": "date-time" },
+          "action": { "type": "string" },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "description": "Log of recent curator decisions for transparency"
+    }
+  },
+  "additionalProperties": false
+}

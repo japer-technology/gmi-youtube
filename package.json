@@ -10,6 +10,7 @@
     "ingest": "bun run scripts/ingest.ts",
     "generate-guide": "bun run scripts/generate-guide.ts",
     "generate-receipt": "bun run scripts/generate-receipt.ts",
+    "curator": "bun run scripts/curator.ts",
     "publish": "bun run scripts/publish.ts"
   }
 }

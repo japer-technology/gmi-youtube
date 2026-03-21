@@ -59,6 +59,11 @@ jobs:
             echo "Skipping weekly receipt (not Sunday)"
           fi
 
+      - name: Update curator learning
+        env:
+          CURATOR_ACTION: learnFromReceipts
+        run: bun run curator
+
       - name: Check for resource changes
         id: changes
         run: |

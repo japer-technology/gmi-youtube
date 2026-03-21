@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Curator — Station</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Station</h1>
+    <p>Intelligent Curator</p>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="wall.html">Channel Wall</a>
+      <a href="receipt.html">Receipts</a>
+      <a href="search.html">Search</a>
+      <a href="curator.html" class="active">Curator</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="curator">
+      <h2>Curator</h2>
+      <p>The Intelligent Curator manages content discovery, guide generation, and learns from your viewing patterns.</p>
+
+      <div id="curator-chat">
+        <div id="curator-messages">
+          <div class="curator-message curator-system">
+            Welcome to the Curator. Type a question or command below.
+          </div>
+        </div>
+        <div id="curator-input-area">
+          <input type="text" id="curator-input" placeholder="Ask the curator…" autocomplete="off">
+          <button id="curator-send" class="guide-nav-btn">Send</button>
+        </div>
+      </div>
+
+      <div id="curator-state-section">
+        <h3>Curator State</h3>
+        <div id="curator-state-view">
+          <p class="placeholder">Loading curator state…</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built from repository resources. Inspectable, portable, and yours.</p>
+  </footer>
+
+  <script src="station.js"></script>
+</body>
+</html>
