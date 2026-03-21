@@ -391,7 +391,7 @@
         // Embedded YouTube player
         html += '<div class="wall-tile-embed">';
         html += '<iframe src="' + buildEmbedUrl(video.id, autoplay && state === "live") + '"';
-        html += ' frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen';
+        html += ' style="border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen';
         html += ' loading="lazy" title="' + video.title.replace(/"/g, '&quot;') + '"></iframe>';
         html += '</div>';
       } else {
@@ -476,7 +476,7 @@
   /**
    * Initialize the wall page with layout switching and preference controls
    */
-  async function initWall(layouts, channelMap, videos) {
+  function initWall(layouts, channelMap, videos) {
     var container = document.getElementById("channel-wall");
     var layoutSelect = document.getElementById("wall-layout-select");
     var embedToggle = document.getElementById("wall-embed-toggle");
@@ -662,7 +662,7 @@
           }
         }
 
-        await initWall(layouts, channelMap, videos);
+        initWall(layouts, channelMap, videos);
       } else {
         // No wall layouts available — render simple channel list
         renderChannelWall(channels, channelWall);
