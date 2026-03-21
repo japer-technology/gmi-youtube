@@ -71,6 +71,7 @@ const SCHEMA_REQUIRED_FIELDS: Record<string, string[]> = {
   "viewing-receipt": ["id", "periodStart", "periodEnd", "generatedAt"],
   subscriptions: ["channels", "totalCount", "updatedAt"],
   "guide-config": ["blocks", "updatedAt"],
+  "wall-layout": ["name", "rows", "cols", "channels"],
 };
 
 const RESOURCE_DIR_TO_SCHEMA: Record<string, string> = {
@@ -200,6 +201,36 @@ async function validateResources(): Promise<ValidationResult[]> {
     results.push({ file: guideConfigPath, valid: errors.length === 0, errors });
   } catch {
     // guide-config.json is optional — only validate if present
+  }
+
+  // Validate wall-layouts.json if present
+  const wallLayoutsPath = join(RESOURCES_DIR, "wall-layouts.json");
+  try {
+    const data = await loadJson(wallLayoutsPath);
+    const errors: string[] = [];
+    if (!Array.isArray(data)) {
+      errors.push("wall-layouts.json: must be an array of layout objects");
+    } else {
+      const requiredFields = SCHEMA_REQUIRED_FIELDS["wall-layout"] || [];
+      for (let i = 0; i < data.length; i++) {
+        const layout = data[i] as Record<string, unknown>;
+        errors.push(
+          ...validateRequired(layout, requiredFields, `wall-layouts.json[${i}]`)
+        );
+        if (typeof layout.rows === "number" && (layout.rows < 1 || layout.rows > 10)) {
+          errors.push(`wall-layouts.json[${i}]: 'rows' must be between 1 and 10`);
+        }
+        if (typeof layout.cols === "number" && (layout.cols < 1 || layout.cols > 10)) {
+          errors.push(`wall-layouts.json[${i}]: 'cols' must be between 1 and 10`);
+        }
+        if (layout.channels !== undefined && !Array.isArray(layout.channels)) {
+          errors.push(`wall-layouts.json[${i}]: 'channels' must be an array`);
+        }
+      }
+    }
+    results.push({ file: wallLayoutsPath, valid: errors.length === 0, errors });
+  } catch {
+    // wall-layouts.json is optional — only validate if present
   }
 
   return results;

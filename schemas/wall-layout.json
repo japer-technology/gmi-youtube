@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://gmi-youtube.github.io/schemas/wall-layout.json",
+  "title": "Wall Layout",
+  "description": "A named layout configuration for the channel wall, defining grid dimensions and assigned channels",
+  "type": "object",
+  "required": ["name", "rows", "cols", "channels"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Layout identifier (e.g. 'default', 'science', 'calm')"
+    },
+    "rows": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Number of rows in the wall grid"
+    },
+    "cols": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Number of columns in the wall grid"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "YouTube channel ID"
+      },
+      "description": "Ordered list of channel IDs to display in the wall"
+    }
+  },
+  "additionalProperties": false
+}
