@@ -270,6 +270,74 @@ async function validateResources(): Promise<ValidationResult[]> {
   return results;
 }
 
+const FIXTURE_TO_SCHEMA: Record<string, string> = {
+  "channel.json": "channel",
+  "video.json": "video",
+  "playlist.json": "playlist",
+  "guide-entries.json": "guide-entry",
+  "viewing-receipt.json": "viewing-receipt",
+  "transcript.json": "transcript",
+  "subscriptions.json": "subscriptions",
+  "wall-layouts.json": "wall-layout",
+  "curator-state.json": "curator-state",
+  "guide-config.json": "guide-config",
+};
+
+async function validateFixtures(): Promise<ValidationResult[]> {
+  const results: ValidationResult[] = [];
+  const fixturesDir = join(ROOT, "tests", "fixtures");
+
+  for (const [filename, schemaName] of Object.entries(FIXTURE_TO_SCHEMA)) {
+    const filePath = join(fixturesDir, filename);
+    const requiredFields = SCHEMA_REQUIRED_FIELDS[schemaName] || [];
+    const errors: string[] = [];
+
+    try {
+      const data = await loadJson(filePath);
+
+      if (schemaName === "guide-entry") {
+        // Guide entries fixture is an array
+        if (!Array.isArray(data)) {
+          errors.push("Guide entries fixture must be an array");
+        } else {
+          for (let i = 0; i < data.length; i++) {
+            const entry = data[i] as Record<string, unknown>;
+            errors.push(
+              ...validateRequired(entry, requiredFields, `[${i}]`)
+            );
+          }
+        }
+      } else if (schemaName === "wall-layout") {
+        // Wall layouts fixture is an array
+        if (!Array.isArray(data)) {
+          errors.push("Wall layouts fixture must be an array");
+        } else {
+          for (let i = 0; i < data.length; i++) {
+            const layout = data[i] as Record<string, unknown>;
+            errors.push(
+              ...validateRequired(layout, requiredFields, `[${i}]`)
+            );
+          }
+        }
+      } else {
+        errors.push(
+          ...validateRequired(
+            data as Record<string, unknown>,
+            requiredFields,
+            filename
+          )
+        );
+      }
+    } catch {
+      errors.push(`${filename} not found or invalid JSON`);
+    }
+
+    results.push({ file: filePath, valid: errors.length === 0, errors });
+  }
+
+  return results;
+}
+
 async function validateSite(): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
 
@@ -333,6 +401,15 @@ async function main(): Promise<void> {
   console.log("\nChecking resources...");
   const resourceResults = await validateResources();
   for (const r of resourceResults) {
+    const status = r.valid ? "✓" : "✗";
+    console.log(`  ${status} ${r.file.replace(ROOT + "/", "")}`);
+    for (const e of r.errors) console.log(`    → ${e}`);
+    if (!r.valid) allValid = false;
+  }
+
+  console.log("\nChecking fixtures...");
+  const fixtureResults = await validateFixtures();
+  for (const r of fixtureResults) {
     const status = r.valid ? "✓" : "✗";
     console.log(`  ${status} ${r.file.replace(ROOT + "/", "")}`);
     for (const e of r.errors) console.log(`    → ${e}`);
