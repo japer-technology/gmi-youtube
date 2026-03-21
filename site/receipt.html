@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Receipts — Station</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Station</h1>
+    <p>Viewing Receipts</p>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="wall.html">Channel Wall</a>
+      <a href="receipt.html" class="active">Receipts</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="receipts">
+      <h2>Viewing Receipts</h2>
+      <p>Reflective summaries of what arrived, what was featured, and what was skipped.</p>
+
+      <div id="receipt-list">
+        <p class="placeholder">Loading receipts…</p>
+      </div>
+
+      <div id="receipt-detail" style="display:none">
+        <div id="receipt-nav" class="receipt-nav">
+          <button id="receipt-back" class="guide-nav-btn">← All Receipts</button>
+        </div>
+        <div id="receipt-content"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built from repository resources. Inspectable, portable, and yours.</p>
+  </footer>
+
+  <script src="station.js"></script>
+</body>
+</html>

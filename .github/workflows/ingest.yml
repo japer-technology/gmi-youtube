@@ -42,6 +42,12 @@ jobs:
           GUIDE_DATE: ${{ steps.ingest.outputs.date }}
         run: bun run generate-guide
 
+      - name: Generate daily receipt
+        env:
+          RECEIPT_DATE: ${{ steps.ingest.outputs.date }}
+          RECEIPT_PERIOD: day
+        run: bun run generate-receipt
+
       - name: Check for resource changes
         id: changes
         run: |

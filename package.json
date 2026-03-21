@@ -8,6 +8,7 @@
     "build": "bun run scripts/build.ts",
     "ingest": "bun run scripts/ingest.ts",
     "generate-guide": "bun run scripts/generate-guide.ts",
+    "generate-receipt": "bun run scripts/generate-receipt.ts",
     "publish": "bun run scripts/publish.ts"
   }
 }

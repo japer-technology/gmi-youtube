@@ -76,7 +76,12 @@
       "properties": {
         "totalWatched": { "type": "integer", "minimum": 0 },
         "totalArrived": { "type": "integer", "minimum": 0 },
-        "totalSkipped": { "type": "integer", "minimum": 0 }
+        "totalSkipped": { "type": "integer", "minimum": 0 },
+        "totalDurationMinutes": { "type": "integer", "minimum": 0 },
+        "channelDistribution": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
       },
       "additionalProperties": false,
       "description": "Aggregate statistics for the period"

@@ -39,6 +39,25 @@ jobs:
           GUIDE_DATE: ${{ steps.ingest.outputs.date }}
         run: bun run generate-guide
 
+      - name: Generate daily receipt
+        env:
+          RECEIPT_DATE: ${{ steps.ingest.outputs.date }}
+          RECEIPT_PERIOD: day
+        run: bun run generate-receipt
+
+      - name: Generate weekly receipt (Sunday only)
+        if: contains('0', github.event.schedule && '0' || '0')
+        env:
+          RECEIPT_DATE: ${{ steps.ingest.outputs.date }}
+          RECEIPT_PERIOD: week
+        run: |
+          day_of_week=$(date -u +%u)
+          if [ "$day_of_week" = "7" ]; then
+            bun run generate-receipt
+          else
+            echo "Skipping weekly receipt (not Sunday)"
+          fi
+
       - name: Check for resource changes
         id: changes
         run: |
