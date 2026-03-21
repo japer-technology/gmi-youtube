@@ -329,7 +329,7 @@
           html += '<div class="' + entryClass + '">';
           html += '<span class="time">' + formatTime(e.scheduledAt) + '</span>';
           html += '<div class="guide-entry-content">';
-          html += '<h4><a href="https://www.youtube.com/watch?v=' + encodeURIComponent(e.videoId) + '" target="_blank" rel="noopener" data-video-id="' + encodeURIComponent(e.videoId) + '" data-video-title="' + e.title.replace(/"/g, '&quot;') + '">';
+          html += '<h4><a href="https://www.youtube.com/watch?v=' + encodeURIComponent(e.videoId) + '" target="_blank" rel="noopener" data-video-id="' + encodeURIComponent(e.videoId) + '" data-video-title="' + escapeHtml(e.title).replace(/"/g, '&quot;') + '">';
           html += e.title + '</a>' + liveBadge(e.liveBroadcastContent);
           if (airing) html += '<span class="badge now">NOW</span>';
           html += '</h4>';
@@ -636,7 +636,17 @@
     // URL hash takes priority for layout selection (e.g. wall.html#layout=science)
     var hashParams = parseHash();
     if (hashParams.layout) {
-      savedLayout = hashParams.layout;
+      // Validate that the hash layout matches a known layout name
+      var hashLayoutValid = false;
+      for (var hi = 0; hi < layouts.length; hi++) {
+        if (layouts[hi].name === hashParams.layout) {
+          hashLayoutValid = true;
+          break;
+        }
+      }
+      if (hashLayoutValid) {
+        savedLayout = hashParams.layout;
+      }
     }
 
     for (var i = 0; i < layouts.length; i++) {
