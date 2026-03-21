@@ -729,13 +729,13 @@ function parseTimedText(xml: string): TranscriptSegment[] {
   while ((match = textRegex.exec(xml)) !== null) {
     const start = parseFloat(match[1]);
     const dur = match[2] ? parseFloat(match[2]) : undefined;
-    // Decode HTML entities
+    // Decode HTML entities (decode &amp; last to avoid double-unescaping)
     let text = match[3]
-      .replace(/&amp;/g, "&")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&")
       .replace(/\n/g, " ")
       .trim();
     if (text) {
