@@ -1011,6 +1011,199 @@
     await renderForDate(currentDate);
   }
 
+  /**
+   * Curator page: conversational interface with curator state display
+   */
+  function initCurator(channels, manifest) {
+    var messagesEl = document.getElementById("curator-messages");
+    var inputEl = document.getElementById("curator-input");
+    var sendBtn = document.getElementById("curator-send");
+    var stateView = document.getElementById("curator-state-view");
+
+    if (!messagesEl || !inputEl || !sendBtn) return;
+
+    // Load curator state
+    fetchJson("curator-state.json").then(function (state) {
+      if (state && stateView) {
+        renderCuratorState(state, stateView, channels);
+      } else if (stateView) {
+        stateView.innerHTML = '<p class="placeholder">No curator state available. Run the curator to initialise learning.</p>';
+      }
+    });
+
+    function addMessage(text, type) {
+      var msg = document.createElement("div");
+      msg.className = "curator-message " + type;
+      msg.textContent = text;
+      messagesEl.appendChild(msg);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function handleQuery(query) {
+      if (!query.trim()) return;
+      addMessage(query, "curator-user");
+      inputEl.value = "";
+
+      // Process query locally from repository state
+      var response = processLocalQuery(query, channels);
+      addMessage(response, "curator-response");
+    }
+
+    sendBtn.addEventListener("click", function () {
+      handleQuery(inputEl.value);
+    });
+
+    inputEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        handleQuery(inputEl.value);
+      }
+    });
+  }
+
+  /**
+   * Process a natural language query against local repository state
+   */
+  function processLocalQuery(query, channels) {
+    var q = query.toLowerCase();
+
+    if (q.includes("how many") && q.includes("channel")) {
+      return "There are " + channels.length + " channel" + (channels.length !== 1 ? "s" : "") + " tracked in the repository.";
+    }
+
+    if (q.includes("channel") && (q.includes("list") || q.includes("show") || q.includes("what"))) {
+      if (channels.length === 0) return "No channels are currently tracked.";
+      var names = [];
+      for (var i = 0; i < Math.min(channels.length, 10); i++) {
+        names.push(channels[i].title || channels[i].id);
+      }
+      var result = "Tracked channels:\n";
+      for (var j = 0; j < names.length; j++) {
+        result += "  • " + names[j] + "\n";
+      }
+      if (channels.length > 10) result += "  …and " + (channels.length - 10) + " more";
+      return result;
+    }
+
+    if (q.includes("help") || q.includes("what can")) {
+      return "I can help you with:\n" +
+        "  • Channel information — \"How many channels?\", \"List channels\"\n" +
+        "  • Content questions — \"What's new?\", \"Any live content?\"\n" +
+        "  • Curator state — View learning state below\n\n" +
+        "For full curator actions (guide generation, recommendations,\n" +
+        "content discovery), use the CLI:\n" +
+        "  CURATOR_ACTION=<action> bun run curator";
+    }
+
+    if (q.includes("hello") || q.includes("hi ") || q === "hi") {
+      return "Hello! I'm the Station Curator. I help manage your personal TV station. Type \"help\" to see what I can do.";
+    }
+
+    return "I can answer questions about your station's repository state. Try:\n" +
+      "  • \"How many channels?\"\n" +
+      "  • \"List channels\"\n" +
+      "  • \"Help\"\n\n" +
+      "For advanced actions, use the CLI: CURATOR_ACTION=<action> bun run curator";
+  }
+
+  /**
+   * Render the curator learning state
+   */
+  function renderCuratorState(state, container, channels) {
+    var html = '<div class="curator-state-grid">';
+
+    // Channel affinities
+    var channelIds = Object.keys(state.channelAffinities || {});
+    if (channelIds.length > 0) {
+      html += '<div class="curator-state-card">';
+      html += '<h4>Channel Affinities</h4>';
+      var channelMap = {};
+      for (var ci = 0; ci < channels.length; ci++) {
+        channelMap[channels[ci].id] = channels[ci].title || channels[ci].id;
+      }
+      // Sort by score descending
+      channelIds.sort(function (a, b) {
+        return (state.channelAffinities[b].score || 0) - (state.channelAffinities[a].score || 0);
+      });
+      for (var i = 0; i < Math.min(channelIds.length, 8); i++) {
+        var chId = channelIds[i];
+        var aff = state.channelAffinities[chId];
+        var name = channelMap[chId] || chId;
+        html += '<div class="curator-state-item">';
+        html += '<span class="name">' + escapeHtml(name) + '</span>';
+        html += '<span class="curator-state-score">' + Math.round((aff.score || 0) * 100) + '%</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Topic preferences
+    var topics = Object.keys(state.topicPreferences || {});
+    if (topics.length > 0) {
+      html += '<div class="curator-state-card">';
+      html += '<h4>Topic Preferences</h4>';
+      topics.sort(function (a, b) {
+        return (state.topicPreferences[b].score || 0) - (state.topicPreferences[a].score || 0);
+      });
+      for (var ti = 0; ti < Math.min(topics.length, 8); ti++) {
+        var tp = state.topicPreferences[topics[ti]];
+        html += '<div class="curator-state-item">';
+        html += '<span class="name">' + escapeHtml(topics[ti]) + '</span>';
+        html += '<span class="curator-state-score">' + Math.round((tp.score || 0) * 100) + '%</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Format preferences
+    var formats = Object.keys(state.formatPreferences || {});
+    if (formats.length > 0) {
+      html += '<div class="curator-state-card">';
+      html += '<h4>Format Preferences</h4>';
+      formats.sort(function (a, b) {
+        return (state.formatPreferences[b].score || 0) - (state.formatPreferences[a].score || 0);
+      });
+      for (var fi = 0; fi < Math.min(formats.length, 8); fi++) {
+        var fp = state.formatPreferences[formats[fi]];
+        html += '<div class="curator-state-item">';
+        html += '<span class="name">' + escapeHtml(formats[fi]) + '</span>';
+        html += '<span class="curator-state-score">' + Math.round((fp.score || 0) * 100) + '%</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
+
+    // Recent decisions
+    var decisions = state.recentDecisions || [];
+    if (decisions.length > 0) {
+      html += '<div class="curator-decisions">';
+      html += '<h4 style="font-size:0.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin:0.75rem 0 0.5rem;">Recent Decisions</h4>';
+      var recentDecisions = decisions.slice(-5).reverse();
+      for (var di = 0; di < recentDecisions.length; di++) {
+        var dec = recentDecisions[di];
+        html += '<div class="curator-decision">';
+        html += '<span class="curator-decision-action">' + escapeHtml(dec.action) + '</span> ';
+        html += '<span class="curator-decision-date">' + (dec.date ? dec.date.slice(0, 16).replace("T", " ") : "") + '</span>';
+        html += '<div>' + escapeHtml(dec.summary) + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    if (channelIds.length === 0 && topics.length === 0 && formats.length === 0 && decisions.length === 0) {
+      html = '<p class="placeholder">No curator learning data yet. Run "CURATOR_ACTION=learnFromReceipts bun run curator" to build preference data from viewing receipts.</p>';
+    }
+
+    container.innerHTML = html;
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
   async function init() {
     var manifest = await loadManifest();
 
@@ -1100,6 +1293,12 @@
     if (searchResults) {
       var searchIndex = await loadSearchIndex();
       initSearch(searchIndex);
+    }
+
+    // Curator page: conversational curator interface
+    var curatorMessages = document.getElementById("curator-messages");
+    if (curatorMessages) {
+      initCurator(channels, manifest);
     }
   }
 
