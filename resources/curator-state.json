@@ -1,8 +1,30 @@
 {
   "version": "1.0",
-  "updatedAt": "2026-03-20T00:00:00Z",
-  "channelAffinities": {},
-  "topicPreferences": {},
-  "formatPreferences": {},
-  "recentDecisions": []
+  "updatedAt": "2026-03-21T06:21:01.651Z",
+  "channelAffinities": {
+    "UCBcRF18a7Qf58cCRy5xuWwQ": {
+      "featuredCount": 1,
+      "skippedCount": 0,
+      "score": 1
+    }
+  },
+  "topicPreferences": {
+    "technology": {
+      "featuredCount": 1,
+      "score": 1
+    }
+  },
+  "formatPreferences": {
+    "extended": {
+      "featuredCount": 1,
+      "score": 1
+    }
+  },
+  "recentDecisions": [
+    {
+      "date": "2026-03-21T06:21:01.651Z",
+      "action": "learnFromReceipts",
+      "summary": "Analyzed 2 receipt(s): 1 channels, 1 topics, 1 formats"
+    }
+  ]
 }

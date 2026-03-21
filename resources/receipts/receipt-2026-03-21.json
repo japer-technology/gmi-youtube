@@ -1,0 +1,19 @@
+{
+  "id": "receipt-2026-03-21",
+  "periodStart": "2026-03-21T00:00:00Z",
+  "periodEnd": "2026-03-21T23:59:59Z",
+  "generatedAt": "2026-03-21T06:21:01.585Z",
+  "watched": [],
+  "arrived": [],
+  "skipped": [],
+  "curatorNotes": "Daily summary for 2026-03-21. No new content arrived during this period. Total scheduled duration: 2h 15m. Content spanned 1 channel.",
+  "stats": {
+    "totalWatched": 0,
+    "totalArrived": 0,
+    "totalSkipped": 0,
+    "totalDurationMinutes": 135,
+    "channelDistribution": {
+      "TRAVIS": 1
+    }
+  }
+}
