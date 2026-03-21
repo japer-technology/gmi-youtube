@@ -12,9 +12,13 @@
  * to API-key-only mode using an existing subscription index when OAuth is unavailable.
  *
  * Reads INGEST_SCOPE environment variable (default: "subscriptions").
+ *
+ * Caption and transcript support:
+ *   - Set INGEST_CAPTIONS=true to fetch caption track metadata (50 units per call)
+ *   - Set INGEST_TRANSCRIPTS=true to download transcripts for captioned videos (200 units per call, requires OAuth)
  */
 
-import { writeFile, readFile, mkdir } from "node:fs/promises";
+import { writeFile, readFile, mkdir, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
@@ -25,6 +29,8 @@ const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID;
 const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
 const YOUTUBE_REFRESH_TOKEN = process.env.YOUTUBE_REFRESH_TOKEN;
 const INGEST_SCOPE = process.env.INGEST_SCOPE || "subscriptions";
+const INGEST_CAPTIONS = process.env.INGEST_CAPTIONS === "true";
+const INGEST_TRANSCRIPTS = process.env.INGEST_TRANSCRIPTS === "true";
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -661,6 +667,187 @@ async function ingestSubscriptions(): Promise<void> {
   }
 }
 
+// --- Caption and transcript ingestion ---
+
+interface YouTubeCaptionItem {
+  id: string;
+  snippet: {
+    videoId: string;
+    language: string;
+    name: string;
+    trackKind: string;
+    lastUpdated?: string;
+  };
+}
+
+interface CaptionTrack {
+  id: string;
+  language: string;
+  name: string;
+  trackKind: string;
+}
+
+interface TranscriptSegment {
+  start: number;
+  duration?: number;
+  text: string;
+}
+
+async function fetchCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
+  console.log(`  Fetching caption tracks for: ${videoId}`);
+  const data = (await youtubeGet("captions", {
+    part: "snippet",
+    videoId,
+  }, 50)) as { items?: YouTubeCaptionItem[] };
+
+  if (!data.items || data.items.length === 0) {
+    return [];
+  }
+
+  return data.items.map((item) => ({
+    id: item.id,
+    language: item.snippet.language,
+    name: item.snippet.name || "",
+    trackKind: item.snippet.trackKind,
+  }));
+}
+
+function selectBestCaptionTrack(tracks: CaptionTrack[]): CaptionTrack | null {
+  if (tracks.length === 0) return null;
+  // Prefer standard tracks over ASR, prefer English
+  const standard = tracks.filter((t) => t.trackKind === "standard");
+  const pool = standard.length > 0 ? standard : tracks;
+  const english = pool.find((t) => t.language.startsWith("en"));
+  return english || pool[0];
+}
+
+function parseTimedText(xml: string): TranscriptSegment[] {
+  const segments: TranscriptSegment[] = [];
+  // Parse <text start="..." dur="...">content</text> elements
+  const textRegex = /<text\s+start="([^"]*)"(?:\s+dur="([^"]*)")?[^>]*>([\s\S]*?)<\/text>/g;
+  let match;
+  while ((match = textRegex.exec(xml)) !== null) {
+    const start = parseFloat(match[1]);
+    const dur = match[2] ? parseFloat(match[2]) : undefined;
+    // Decode HTML entities (decode &amp; last to avoid double-unescaping)
+    let text = match[3]
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&")
+      .replace(/\n/g, " ")
+      .trim();
+    if (text) {
+      const seg: TranscriptSegment = { start, text };
+      if (dur !== undefined) seg.duration = dur;
+      segments.push(seg);
+    }
+  }
+  return segments;
+}
+
+async function downloadTranscript(
+  videoId: string,
+  track: CaptionTrack
+): Promise<{ segments: TranscriptSegment[]; fullText: string } | null> {
+  console.log(`  Downloading transcript for ${videoId} (${track.language})...`);
+
+  try {
+    const accessToken = await getAccessToken();
+    const url = `${YOUTUBE_API_BASE}/captions/${encodeURIComponent(track.id)}`;
+
+    trackQuota("captions.download", 200);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.log(`  ✗ Transcript download failed (${res.status}): ${body}`);
+      return null;
+    }
+
+    const text = await res.text();
+    const segments = parseTimedText(text);
+    const fullText = segments.map((s) => s.text).join(" ");
+    return { segments, fullText };
+  } catch (err) {
+    console.log(`  ✗ Transcript download error: ${err instanceof Error ? err.message : err}`);
+    return null;
+  }
+}
+
+async function ingestCaptionsForVideos(): Promise<void> {
+  console.log("\n--- Caption Ingestion ---\n");
+
+  const videosDir = join(RESOURCES_DIR, "videos");
+  let videoFiles: string[];
+  try {
+    const entries = await readdir(videosDir);
+    videoFiles = entries.filter((f) => f.endsWith(".json"));
+  } catch {
+    console.log("No video resources found.");
+    return;
+  }
+
+  let captionCount = 0;
+  let transcriptCount = 0;
+
+  for (const file of videoFiles) {
+    const videoPath = join(videosDir, file);
+    const text = await readFile(videoPath, "utf-8");
+    const video = JSON.parse(text) as Record<string, unknown>;
+    const videoId = video.id as string;
+
+    // Fetch caption tracks
+    const tracks = await fetchCaptionTracks(videoId);
+    if (tracks.length > 0) {
+      video.captionsAvailable = true;
+      video.captionTracks = tracks.map((t) => ({
+        id: t.id,
+        language: t.language,
+        name: t.name,
+        trackKind: t.trackKind,
+      }));
+      captionCount++;
+    } else {
+      video.captionsAvailable = false;
+    }
+    video.updatedAt = nowISO();
+
+    // Write updated video resource
+    await writeFile(videoPath, JSON.stringify(video, null, 2) + "\n");
+    console.log(`  ✓ ${videoId}: ${tracks.length} caption track${tracks.length === 1 ? "" : "s"}`);
+
+    // Optionally download transcript
+    if (INGEST_TRANSCRIPTS && tracks.length > 0 && hasOAuthCredentials()) {
+      const bestTrack = selectBestCaptionTrack(tracks);
+      if (bestTrack) {
+        const result = await downloadTranscript(videoId, bestTrack);
+        if (result) {
+          const transcript = {
+            videoId,
+            language: bestTrack.language,
+            trackKind: bestTrack.trackKind,
+            segments: result.segments,
+            fullText: result.fullText,
+            source: "youtube",
+            updatedAt: nowISO(),
+          };
+          await writeResource("transcripts", `${videoId}.json`, transcript);
+          video.transcriptAvailable = true;
+          await writeFile(videoPath, JSON.stringify(video, null, 2) + "\n");
+          console.log(`  ✓ Transcript saved: ${videoId} (${bestTrack.language}, ${result.segments.length} segments)`);
+          transcriptCount++;
+        }
+      }
+    }
+  }
+
+  console.log(`\nCaption summary: ${captionCount} video${captionCount === 1 ? "" : "s"} with captions, ${transcriptCount} transcript${transcriptCount === 1 ? "" : "s"} downloaded`);
+}
+
 // --- Main ---
 
 async function main(): Promise<void> {
@@ -714,6 +901,15 @@ async function main(): Promise<void> {
   } catch (err) {
     console.error(`\n✗ Ingestion failed: ${err instanceof Error ? err.message : err}`);
     process.exit(1);
+  }
+
+  // Caption and transcript ingestion (runs after main ingestion if enabled)
+  if (INGEST_CAPTIONS) {
+    try {
+      await ingestCaptionsForVideos();
+    } catch (err) {
+      console.error(`\n✗ Caption ingestion failed: ${err instanceof Error ? err.message : err}`);
+    }
   }
 
   // Report quota usage

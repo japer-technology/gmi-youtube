@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search — Station</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Station</h1>
+    <p>Search</p>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="wall.html">Channel Wall</a>
+      <a href="receipt.html">Receipts</a>
+      <a href="search.html" class="active">Search</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="search">
+      <h2>Search</h2>
+      <p>Search video titles, descriptions, tags, and transcripts.</p>
+
+      <div id="search-controls">
+        <input type="text" id="search-input" placeholder="Search videos…" autocomplete="off">
+        <button id="search-btn" class="guide-nav-btn">Search</button>
+      </div>
+
+      <div id="search-status"></div>
+      <div id="search-results">
+        <p class="placeholder">Enter a query to search across your video library.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built from repository resources. Inspectable, portable, and yours.</p>
+  </footer>
+
+  <script src="station.js"></script>
+</body>
+</html>

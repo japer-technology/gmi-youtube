@@ -70,6 +70,24 @@
       "type": "boolean",
       "description": "Whether captions are available for this video"
     },
+    "captionTracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Caption track ID" },
+          "language": { "type": "string", "description": "BCP-47 language code" },
+          "name": { "type": "string", "description": "Track display name" },
+          "trackKind": { "type": "string", "description": "Track kind (standard, ASR, forced)" }
+        },
+        "required": ["language"]
+      },
+      "description": "Available caption tracks with language and kind"
+    },
+    "transcriptAvailable": {
+      "type": "boolean",
+      "description": "Whether a transcript has been downloaded and stored for this video"
+    },
     "source": {
       "type": "string",
       "const": "youtube",

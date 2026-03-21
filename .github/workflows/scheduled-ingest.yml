@@ -27,6 +27,8 @@ jobs:
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           INGEST_SCOPE: subscriptions
+          INGEST_CAPTIONS: "true"
+          INGEST_TRANSCRIPTS: "true"
         run: |
           output=$(bun run ingest 2>&1)
           echo "$output"
