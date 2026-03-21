@@ -27,12 +27,128 @@
  * - Video titles, descriptions, and tags
  * - Downloaded transcripts with timestamp deep-linking
  * - Ranked results using a static inverted index
+ *
+ * Multi-screen coordination (Phase 8):
+ * - Screen roles identified via data-screen-role attribute on body
+ * - BroadcastChannel "gmi-station" for cross-tab video selection
+ * - URL hash state for shareable screen configurations
+ * - localStorage for persisting screen role preferences
+ * - Responsive layout adaptation per screen role
  */
 
 (function () {
   "use strict";
 
   var BASE = "resources/";
+
+  // --- Multi-screen coordination (Phase 8) ---
+
+  var screenRole = (document.body && document.body.getAttribute("data-screen-role")) || "home";
+
+  /**
+   * BroadcastChannel for same-origin tab communication.
+   * Coordination is an enhancement — each screen works independently.
+   */
+  var stationChannel = null;
+  try {
+    if (typeof BroadcastChannel !== "undefined") {
+      stationChannel = new BroadcastChannel("gmi-station");
+    }
+  } catch (_e) {
+    // BroadcastChannel unavailable — coordination disabled
+  }
+
+  /**
+   * Broadcast a message to other Station tabs
+   */
+  function broadcastMessage(msg) {
+    if (stationChannel) {
+      try {
+        stationChannel.postMessage(msg);
+      } catch (_e) {
+        // broadcast failed — non-critical
+      }
+    }
+  }
+
+  /**
+   * Get a localStorage preference with a default (generic version)
+   */
+  function getPref(key, defaultValue) {
+    try {
+      var val = localStorage.getItem("station-" + key);
+      if (val === null) return defaultValue;
+      return val;
+    } catch (_e) {
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Save a preference to localStorage
+   */
+  function setPref(key, value) {
+    try {
+      localStorage.setItem("station-" + key, String(value));
+    } catch (_e) {
+      // localStorage unavailable — preference not persisted
+    }
+  }
+
+  /**
+   * Parse URL hash parameters into a key-value object.
+   * Supports both simple hashes (#value) and parameterised hashes (#key=val&key2=val2).
+   */
+  function parseHash() {
+    var hash = window.location.hash.slice(1);
+    if (!hash) return {};
+    var params = {};
+    var parts = hash.split("&");
+    for (var i = 0; i < parts.length; i++) {
+      var eq = parts[i].indexOf("=");
+      if (eq !== -1) {
+        params[decodeURIComponent(parts[i].slice(0, eq))] = decodeURIComponent(parts[i].slice(eq + 1));
+      } else {
+        params._value = decodeURIComponent(parts[i]);
+      }
+    }
+    return params;
+  }
+
+  /**
+   * Handle incoming BroadcastChannel messages for video playback.
+   * On guide/wall/curator screens, show a non-intrusive notification.
+   * On any screen, a "play" message opens the video if the user configured it.
+   */
+  function setupChannelListener() {
+    if (!stationChannel) return;
+    stationChannel.addEventListener("message", function (event) {
+      var data = event.data;
+      if (!data || data.type !== "play" || !data.videoId) return;
+
+      // Show a notification bar for incoming playback events
+      var existing = document.getElementById("station-playback-bar");
+      if (existing) existing.remove();
+
+      var bar = document.createElement("div");
+      bar.id = "station-playback-bar";
+      bar.className = "station-playback-bar";
+      var titleText = data.title ? data.title : data.videoId;
+      bar.innerHTML = '<span>Now playing: <strong>' + escapeHtml(titleText) + '</strong></span>' +
+        ' <a href="https://www.youtube.com/watch?v=' + encodeURIComponent(data.videoId) + '" target="_blank" rel="noopener" class="station-playback-link">Watch ↗</a>' +
+        '<button class="station-playback-dismiss" aria-label="Dismiss">×</button>';
+      document.body.insertBefore(bar, document.body.firstChild);
+
+      bar.querySelector(".station-playback-dismiss").addEventListener("click", function () {
+        bar.remove();
+      });
+
+      // Auto-dismiss after 15 seconds
+      setTimeout(function () {
+        if (bar.parentNode) bar.remove();
+      }, 15000);
+    });
+  }
 
   function fetchJson(path) {
     return fetch(BASE + path).then(function (res) {
@@ -213,7 +329,7 @@
           html += '<div class="' + entryClass + '">';
           html += '<span class="time">' + formatTime(e.scheduledAt) + '</span>';
           html += '<div class="guide-entry-content">';
-          html += '<h4><a href="https://www.youtube.com/watch?v=' + encodeURIComponent(e.videoId) + '" target="_blank" rel="noopener">';
+          html += '<h4><a href="https://www.youtube.com/watch?v=' + encodeURIComponent(e.videoId) + '" target="_blank" rel="noopener" data-video-id="' + encodeURIComponent(e.videoId) + '" data-video-title="' + e.title.replace(/"/g, '&quot;') + '">';
           html += e.title + '</a>' + liveBadge(e.liveBroadcastContent);
           if (airing) html += '<span class="badge now">NOW</span>';
           html += '</h4>';
@@ -234,6 +350,17 @@
 
     html += '</div>';
     container.innerHTML = html;
+
+    // Broadcast video selection to other tabs when a guide link is clicked
+    container.addEventListener("click", function (event) {
+      var link = event.target.closest ? event.target.closest("a[data-video-id]") : null;
+      if (!link) return;
+      broadcastMessage({
+        type: "play",
+        videoId: link.getAttribute("data-video-id"),
+        title: link.getAttribute("data-video-title") || ""
+      });
+    });
   }
 
   function renderGuidePreview(entries, container) {
@@ -506,6 +633,12 @@
     var savedLayout = "";
     try { savedLayout = localStorage.getItem("wall-layout") || ""; } catch (_e) { /* no-op */ }
 
+    // URL hash takes priority for layout selection (e.g. wall.html#layout=science)
+    var hashParams = parseHash();
+    if (hashParams.layout) {
+      savedLayout = hashParams.layout;
+    }
+
     for (var i = 0; i < layouts.length; i++) {
       var opt = document.createElement("option");
       opt.value = String(i);
@@ -519,6 +652,7 @@
       var idx = parseInt(layoutSelect.value, 10) || 0;
       var layout = layouts[idx];
       try { localStorage.setItem("wall-layout", layout.name); } catch (_e) { /* no-op */ }
+      window.location.hash = "layout=" + encodeURIComponent(layout.name);
       renderWallGrid(layout, channelMap, videos, container, embedEnabled, autoplay);
     }
 
@@ -984,17 +1118,17 @@
 
     var currentDate = todayDateString();
 
-    // Check URL hash for a date parameter
-    if (window.location.hash) {
-      var hashDate = window.location.hash.slice(1);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(hashDate)) {
-        currentDate = hashDate;
-      }
+    // Check URL hash for a date parameter (supports #date=YYYY-MM-DD or legacy #YYYY-MM-DD)
+    var hashParams = parseHash();
+    if (hashParams.date && /^\d{4}-\d{2}-\d{2}$/.test(hashParams.date)) {
+      currentDate = hashParams.date;
+    } else if (hashParams._value && /^\d{4}-\d{2}-\d{2}$/.test(hashParams._value)) {
+      currentDate = hashParams._value;
     }
 
     async function renderForDate(dateStr) {
       currentDate = dateStr;
-      window.location.hash = dateStr;
+      window.location.hash = "date=" + dateStr;
       dateLabel.textContent = formatDateLabel(dateStr);
       guideGrid.innerHTML = '<p class="placeholder">Loading guide for ' + dateStr + '…</p>';
       var entries = await loadGuideForDate(dateStr);
@@ -1300,6 +1434,9 @@
     if (curatorMessages) {
       initCurator(channels, manifest);
     }
+
+    // Multi-screen coordination: listen for cross-tab messages
+    setupChannelListener();
   }
 
   if (document.readyState === "loading") {

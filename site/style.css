@@ -978,3 +978,116 @@ footer {
   color: var(--muted);
   font-size: 0.8rem;
 }
+
+/* Multi-screen coordination (Phase 8) */
+
+/* Playback notification bar for cross-tab video selection */
+
+.station-playback-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  border-radius: 0 0 6px 6px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.station-playback-link {
+  color: #fff;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.station-playback-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+/* Guide screen: collapse to list on narrow screens */
+
+@media (max-width: 600px) {
+  .guide-block-header {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .guide-entry {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .guide-entry .time {
+    min-width: auto;
+    font-size: 0.8rem;
+  }
+
+  .guide-date-nav {
+    gap: 0.5rem;
+  }
+
+  .guide-date-label {
+    font-size: 0.85rem;
+    text-align: center;
+    flex: 1;
+  }
+}
+
+/* Playback screen: fill viewport on mobile */
+
+@media (max-width: 480px) {
+  body[data-screen-role="guide"] {
+    padding: 1rem 0.5rem;
+  }
+
+  body[data-screen-role="wall"] {
+    padding: 1rem 0.5rem;
+  }
+
+  .wall-tile-embed {
+    padding-bottom: 56.25%;
+  }
+
+  .wall-tile-info {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .wall-tile-title {
+    font-size: 0.8rem;
+  }
+}
+
+/* Curator screen: clean conversation on all screen sizes */
+
+@media (max-width: 600px) {
+  #curator-messages {
+    min-height: 150px;
+    max-height: 300px;
+  }
+
+  .curator-message {
+    max-width: 95%;
+    font-size: 0.85rem;
+  }
+
+  .curator-state-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Wide screen: expand wall grid */
+
+@media (min-width: 1200px) {
+  body[data-screen-role="wall"] {
+    max-width: 1600px;
+  }
+}
