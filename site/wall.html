@@ -21,6 +21,22 @@
     <section id="wall">
       <h2>Channel Wall</h2>
       <p>A configurable channel matrix for rapid situational awareness.</p>
+
+      <div id="wall-controls">
+        <div class="wall-layout-switcher">
+          <label for="wall-layout-select">Layout:</label>
+          <select id="wall-layout-select"></select>
+        </div>
+        <div class="wall-playback-pref">
+          <label>
+            <input type="checkbox" id="wall-embed-toggle"> Embed players
+          </label>
+          <label>
+            <input type="checkbox" id="wall-autoplay-toggle"> Autoplay
+          </label>
+        </div>
+      </div>
+
       <div id="channel-wall">
         <p class="placeholder">Loading channel data…</p>
       </div>

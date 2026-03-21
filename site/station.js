@@ -10,6 +10,13 @@
  * - Current time highlighting
  * - Live and upcoming visual indicators
  * - Date navigation for guide history
+ *
+ * The wall page renders a configurable channel matrix with:
+ * - Named layout configurations (NxM grids)
+ * - Most recent or live video per channel
+ * - Live, upcoming, and stale-state indicators
+ * - Embedded YouTube players with thumbnail fallback
+ * - Layout switching and playback preference controls
  */
 
 (function () {
@@ -280,6 +287,252 @@
     container.innerHTML = html;
   }
 
+  // --- Wall layout support ---
+
+  function loadWallLayouts() {
+    return fetchJson("wall-layouts.json").then(function (data) {
+      if (data && Array.isArray(data) && data.length > 0) return data;
+      return null;
+    });
+  }
+
+  /**
+   * Parse ISO 8601 duration to milliseconds
+   */
+  function parseDurationMs(iso) {
+    if (!iso) return 0;
+    var match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return 0;
+    var h = parseInt(match[1] || "0", 10);
+    var m = parseInt(match[2] || "0", 10);
+    var s = parseInt(match[3] || "0", 10);
+    return (h * 3600 + m * 60 + s) * 1000;
+  }
+
+  /**
+   * Determine the state of a video for wall display.
+   * Returns "live", "upcoming", "stale", or "recent".
+   * Stale = published more than 7 days ago with no live status.
+   */
+  function videoWallState(video) {
+    if (video.liveBroadcastContent === "live") return "live";
+    if (video.liveBroadcastContent === "upcoming") return "upcoming";
+    var now = Date.now();
+    var published = new Date(video.publishedAt).getTime();
+    if (isNaN(published)) return "stale";
+    var sevenDays = 7 * 24 * 60 * 60 * 1000;
+    return (now - published < sevenDays) ? "recent" : "stale";
+  }
+
+  /**
+   * Find the most relevant video for a channel:
+   * 1. Currently live video (highest priority)
+   * 2. Upcoming video
+   * 3. Most recently published video
+   */
+  function findBestVideoForChannel(channelId, videos) {
+    var channelVideos = [];
+    for (var i = 0; i < videos.length; i++) {
+      if (videos[i].channelId === channelId) {
+        channelVideos.push(videos[i]);
+      }
+    }
+    if (channelVideos.length === 0) return null;
+
+    // Priority: live > upcoming > most recent
+    for (var j = 0; j < channelVideos.length; j++) {
+      if (channelVideos[j].liveBroadcastContent === "live") return channelVideos[j];
+    }
+    for (var k = 0; k < channelVideos.length; k++) {
+      if (channelVideos[k].liveBroadcastContent === "upcoming") return channelVideos[k];
+    }
+
+    // Sort by publishedAt descending and return the most recent
+    channelVideos.sort(function (a, b) {
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    });
+    return channelVideos[0];
+  }
+
+  /**
+   * Build the YouTube embed URL for a video
+   */
+  function buildEmbedUrl(videoId, autoplay) {
+    var url = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(videoId);
+    var params = [];
+    if (autoplay) params.push("autoplay=1");
+    params.push("rel=0");
+    if (params.length > 0) url += "?" + params.join("&");
+    return url;
+  }
+
+  /**
+   * Render a single wall tile for a channel
+   */
+  function renderWallTile(channel, video, embedEnabled, autoplay) {
+    var state = video ? videoWallState(video) : "stale";
+    var tileClass = "wall-tile wall-state-" + state;
+
+    var html = '<div class="' + tileClass + '">';
+
+    // Tile header: channel name + state badge
+    html += '<div class="wall-tile-header">';
+    html += '<span class="wall-tile-channel">' + channel.title + '</span>';
+    if (state === "live") html += '<span class="badge live">LIVE</span>';
+    if (state === "upcoming") html += '<span class="badge upcoming">UPCOMING</span>';
+    if (state === "stale") html += '<span class="badge stale">STALE</span>';
+    html += '</div>';
+
+    if (video) {
+      // Video content area
+      html += '<div class="wall-tile-content">';
+
+      if (embedEnabled) {
+        // Embedded YouTube player
+        html += '<div class="wall-tile-embed">';
+        html += '<iframe src="' + buildEmbedUrl(video.id, autoplay && state === "live") + '"';
+        html += ' frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen';
+        html += ' loading="lazy" title="' + video.title.replace(/"/g, '&quot;') + '"></iframe>';
+        html += '</div>';
+      } else {
+        // Thumbnail + link fallback
+        var thumbUrl = video.thumbnailUrl || "https://i.ytimg.com/vi/" + encodeURIComponent(video.id) + "/hqdefault.jpg";
+        html += '<a class="wall-tile-thumb" href="https://www.youtube.com/watch?v=' + encodeURIComponent(video.id) + '" target="_blank" rel="noopener">';
+        html += '<img src="' + thumbUrl + '" alt="' + video.title.replace(/"/g, '&quot;') + '" loading="lazy">';
+        if (video.duration) {
+          html += '<span class="wall-tile-duration">' + formatDuration(video.duration) + '</span>';
+        }
+        html += '</a>';
+      }
+
+      // Video info
+      html += '<div class="wall-tile-info">';
+      html += '<a class="wall-tile-title" href="https://www.youtube.com/watch?v=' + encodeURIComponent(video.id) + '" target="_blank" rel="noopener">';
+      html += video.title + '</a>';
+      html += '<span class="wall-tile-meta">';
+      if (video.publishedAt) html += formatTime(video.publishedAt);
+      if (video.duration) html += ' · ' + formatDuration(video.duration);
+      html += '</span>';
+      html += '</div>';
+
+      html += '</div>';
+    } else {
+      html += '<div class="wall-tile-content">';
+      html += '<p class="placeholder wall-tile-empty">No recent videos</p>';
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  /**
+   * Render the full wall grid from a layout configuration
+   */
+  function renderWallGrid(layout, channelMap, videos, container, embedEnabled, autoplay) {
+    if (!layout || !layout.channels || layout.channels.length === 0) {
+      container.innerHTML = '<p class="placeholder">No channels assigned to this layout.</p>';
+      return;
+    }
+
+    var cols = layout.cols || 1;
+    var html = '<div class="channel-wall" style="grid-template-columns: repeat(' + cols + ', 1fr)">';
+
+    for (var i = 0; i < layout.channels.length; i++) {
+      var channelId = layout.channels[i];
+      var channel = channelMap[channelId] || { title: channelId, id: channelId };
+      var video = findBestVideoForChannel(channelId, videos);
+      html += renderWallTile(channel, video, embedEnabled, autoplay);
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  /**
+   * Get localStorage preference with a default
+   */
+  function getWallPref(key, defaultValue) {
+    try {
+      var val = localStorage.getItem(key);
+      if (val === null) return defaultValue;
+      return val === "true";
+    } catch (_e) {
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Save a wall preference to localStorage
+   */
+  function setWallPref(key, value) {
+    try {
+      localStorage.setItem(key, value ? "true" : "false");
+    } catch (_e) {
+      // localStorage unavailable — preference not persisted
+    }
+  }
+
+  /**
+   * Initialize the wall page with layout switching and preference controls
+   */
+  async function initWall(layouts, channelMap, videos) {
+    var container = document.getElementById("channel-wall");
+    var layoutSelect = document.getElementById("wall-layout-select");
+    var embedToggle = document.getElementById("wall-embed-toggle");
+    var autoplayToggle = document.getElementById("wall-autoplay-toggle");
+
+    if (!container || !layoutSelect) return;
+
+    // Load preferences
+    var embedEnabled = getWallPref("wall-embed", false);
+    var autoplay = getWallPref("wall-autoplay", false);
+
+    if (embedToggle) embedToggle.checked = embedEnabled;
+    if (autoplayToggle) autoplayToggle.checked = autoplay;
+
+    // Populate layout selector
+    var selectedIndex = 0;
+    var savedLayout = "";
+    try { savedLayout = localStorage.getItem("wall-layout") || ""; } catch (_e) { /* no-op */ }
+
+    for (var i = 0; i < layouts.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = capitalize(layouts[i].name) + " (" + layouts[i].rows + "×" + layouts[i].cols + ")";
+      layoutSelect.appendChild(opt);
+      if (layouts[i].name === savedLayout) selectedIndex = i;
+    }
+    layoutSelect.value = String(selectedIndex);
+
+    function renderCurrent() {
+      var idx = parseInt(layoutSelect.value, 10) || 0;
+      var layout = layouts[idx];
+      try { localStorage.setItem("wall-layout", layout.name); } catch (_e) { /* no-op */ }
+      renderWallGrid(layout, channelMap, videos, container, embedEnabled, autoplay);
+    }
+
+    layoutSelect.addEventListener("change", renderCurrent);
+
+    if (embedToggle) {
+      embedToggle.addEventListener("change", function () {
+        embedEnabled = embedToggle.checked;
+        setWallPref("wall-embed", embedEnabled);
+        renderCurrent();
+      });
+    }
+
+    if (autoplayToggle) {
+      autoplayToggle.addEventListener("change", function () {
+        autoplay = autoplayToggle.checked;
+        setWallPref("wall-autoplay", autoplay);
+        renderCurrent();
+      });
+    }
+
+    renderCurrent();
+  }
+
   async function loadManifest() {
     var manifest = await fetchJson("manifest.json");
     if (!manifest) {
@@ -388,8 +641,35 @@
       renderGuideTimeGrid(guideEntries, blocks, guideGrid);
     }
 
+    // Wall page: configurable layout grid
     var channelWall = document.getElementById("channel-wall");
-    if (channelWall) renderChannelWall(channels, channelWall);
+    var layoutSelect = document.getElementById("wall-layout-select");
+    if (channelWall && layoutSelect) {
+      var layouts = await loadWallLayouts();
+      if (layouts) {
+        // Build channel lookup map
+        var channelMap = {};
+        for (var ci = 0; ci < channels.length; ci++) {
+          channelMap[channels[ci].id] = channels[ci];
+        }
+
+        // Load all videos for wall tiles
+        var videos = [];
+        if (manifest.videos) {
+          for (var vi = 0; vi < manifest.videos.length; vi++) {
+            var v = await fetchJson(manifest.videos[vi]);
+            if (v) videos.push(v);
+          }
+        }
+
+        await initWall(layouts, channelMap, videos);
+      } else {
+        // No wall layouts available — render simple channel list
+        renderChannelWall(channels, channelWall);
+      }
+    } else if (channelWall) {
+      renderChannelWall(channels, channelWall);
+    }
   }
 
   if (document.readyState === "loading") {

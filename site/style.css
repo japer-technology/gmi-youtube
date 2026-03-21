@@ -21,7 +21,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   line-height: 1.6;
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
@@ -276,4 +276,208 @@ footer {
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+/* Wall controls */
+
+#wall-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.wall-layout-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wall-layout-switcher label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.wall-layout-switcher select {
+  font-size: 0.9rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card-bg);
+  color: var(--fg);
+}
+
+.wall-playback-pref {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.wall-playback-pref label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+/* Wall tiles */
+
+.wall-tile {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.wall-tile-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.wall-tile-channel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.wall-tile-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Embedded player */
+
+.wall-tile-embed {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  background: #000;
+}
+
+.wall-tile-embed iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Thumbnail fallback */
+
+.wall-tile-thumb {
+  display: block;
+  position: relative;
+  width: 100%;
+  background: #000;
+}
+
+.wall-tile-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+
+.wall-tile-duration {
+  position: absolute;
+  bottom: 0.4rem;
+  right: 0.4rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tile info */
+
+.wall-tile-info {
+  padding: 0.5rem 0.75rem;
+}
+
+.wall-tile-title {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wall-tile-title:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.wall-tile-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.wall-tile-empty {
+  margin: auto;
+  font-size: 0.85rem;
+  padding: 1.5rem;
+}
+
+/* Wall tile state indicators */
+
+.wall-state-live {
+  border-color: #cc0000;
+  box-shadow: 0 0 0 1px #cc0000;
+}
+
+.wall-state-live .wall-tile-header {
+  background: #fef5f5;
+}
+
+.wall-state-upcoming {
+  border-color: #cc8800;
+  box-shadow: 0 0 0 1px #cc8800;
+}
+
+.wall-state-upcoming .wall-tile-header {
+  background: #fffbf0;
+}
+
+.wall-state-stale {
+  opacity: 0.65;
+}
+
+.badge.stale {
+  background: var(--muted);
+}
+
+/* Responsive wall: collapse to fewer columns on narrow screens */
+
+@media (max-width: 768px) {
+  .channel-wall {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .channel-wall {
+    grid-template-columns: 1fr !important;
+  }
 }

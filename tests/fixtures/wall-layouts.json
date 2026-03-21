@@ -1,0 +1,39 @@
+[
+  {
+    "name": "default",
+    "rows": 3,
+    "cols": 3,
+    "channels": [
+      "UCBcRF18a7Qf58cCRy5xuWwQ",
+      "UCexample2",
+      "UCexample3",
+      "UCexample4",
+      "UCexample5",
+      "UCexample6",
+      "UCexample7",
+      "UCexample8",
+      "UCexample9"
+    ]
+  },
+  {
+    "name": "science",
+    "rows": 2,
+    "cols": 3,
+    "channels": [
+      "UCexample10",
+      "UCexample11",
+      "UCexample12",
+      "UCexample13",
+      "UCexample14",
+      "UCexample15"
+    ]
+  },
+  {
+    "name": "calm",
+    "rows": 1,
+    "cols": 1,
+    "channels": [
+      "UCBcRF18a7Qf58cCRy5xuWwQ"
+    ]
+  }
+]
