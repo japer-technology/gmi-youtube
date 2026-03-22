@@ -385,7 +385,10 @@ async function main() {
     // ── Commit and push state changes ───────────────────────────────────────────
     // Stage all changes (session log, mapping JSON, any files the agent edited),
     // commit only if the index is dirty, then push with a retry-on-conflict loop.
-    const addResult = await run(["git", "add", "-A"]);
+    // Exclude .github/workflows/ — the GITHUB_TOKEN cannot push workflow file
+    // changes (requires the `workflows` permission which is only available on
+    // Personal Access Tokens or GitHub Apps with explicit workflows scope).
+    const addResult = await run(["git", "add", "-A", "--", ".", ":!.github/workflows/"]);
     if (addResult.exitCode !== 0) {
       console.error("git add failed with exit code", addResult.exitCode);
     }
