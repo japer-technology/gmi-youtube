@@ -104,7 +104,7 @@ async function youtubeGet(
   const res = await fetch(url.toString());
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`YouTube API error (${res.status}): ${body}`);
+    throw new Error(`YouTube API error on ${endpoint} (${res.status}): ${body}`);
   }
   return res.json();
 }
@@ -126,7 +126,7 @@ async function youtubeGetAuth(
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`YouTube API error (${res.status}): ${body}`);
+    throw new Error(`YouTube API error on ${endpoint} (${res.status}): ${body}`);
   }
   return res.json();
 }
@@ -550,21 +550,26 @@ async function ingestSubscriptionChannels(entries: SubscriptionEntry[]): Promise
 
   for (let i = 0; i < channelIds.length; i += 50) {
     const batch = channelIds.slice(i, i + 50);
-    const channelData = (await youtubeGet("channels", {
-      part: "snippet,statistics,contentDetails",
-      id: batch.join(","),
-    }, 1)) as { items?: YouTubeChannelItem[] };
+    try {
+      const channelData = (await youtubeGet("channels", {
+        part: "snippet,statistics,contentDetails",
+        id: batch.join(","),
+      }, 1)) as { items?: YouTubeChannelItem[] };
 
-    if (channelData.items) {
-      for (const channelItem of channelData.items) {
-        const channel = normalizeChannel(channelItem);
-        const channelPath = await writeResource(
-          "channels",
-          `${channelItem.id}.json`,
-          channel
-        );
-        console.log(`  ✓ ${channelPath}`);
+      if (channelData.items) {
+        for (const channelItem of channelData.items) {
+          const channel = normalizeChannel(channelItem);
+          const channelPath = await writeResource(
+            "channels",
+            `${channelItem.id}.json`,
+            channel
+          );
+          console.log(`  ✓ ${channelPath}`);
+        }
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`  ⚠ Error fetching channel batch: ${msg}`);
     }
   }
 }
@@ -572,61 +577,73 @@ async function ingestSubscriptionChannels(entries: SubscriptionEntry[]): Promise
 async function ingestSubscriptionUploads(index: SubscriptionsIndex): Promise<void> {
   console.log(`\nFetching recent uploads for ${index.channels.length} subscribed channels...`);
 
+  let successCount = 0;
+  let errorCount = 0;
+
   for (const sub of index.channels) {
-    // Fetch channel metadata to get uploads playlist ID (1 unit per batch of up to 50)
-    const channelData = (await youtubeGet("channels", {
-      part: "contentDetails",
-      id: sub.channelId,
-    }, 1)) as { items?: YouTubeChannelItem[] };
+    try {
+      // Fetch channel metadata to get uploads playlist ID (1 unit per batch of up to 50)
+      const channelData = (await youtubeGet("channels", {
+        part: "contentDetails",
+        id: sub.channelId,
+      }, 1)) as { items?: YouTubeChannelItem[] };
 
-    if (!channelData.items || channelData.items.length === 0) {
-      console.log(`  ✗ Channel not found: ${sub.channelId} (${sub.title})`);
-      continue;
-    }
-
-    const uploadsPlaylistId =
-      channelData.items[0].contentDetails?.relatedPlaylists?.uploads;
-    if (!uploadsPlaylistId) {
-      console.log(`  ✗ No uploads playlist for ${sub.title}`);
-      continue;
-    }
-
-    // Fetch recent playlist items (just first page = 10 most recent, 1 unit)
-    const playlistItemsData = (await youtubeGet("playlistItems", {
-      part: "snippet",
-      playlistId: uploadsPlaylistId,
-      maxResults: "10",
-    }, 1)) as { items?: YouTubePlaylistItemEntry[] };
-
-    if (!playlistItemsData.items || playlistItemsData.items.length === 0) {
-      console.log(`  – No recent uploads for ${sub.title}`);
-      continue;
-    }
-
-    const videoIds = playlistItemsData.items.map(
-      (item) => item.snippet.resourceId.videoId
-    );
-
-    // Fetch video details (1 unit for up to 50 videos)
-    const videosData = (await youtubeGet("videos", {
-      part: "snippet,contentDetails,statistics,liveStreamingDetails",
-      id: videoIds.join(","),
-    }, 1)) as { items?: YouTubeVideoItem[] };
-
-    if (videosData.items) {
-      for (const videoItem of videosData.items) {
-        const video = normalizeVideo(videoItem);
-        const videoPath = await writeResource(
-          "videos",
-          `${videoItem.id}.json`,
-          video
-        );
-        console.log(`  ✓ ${videoPath}`);
+      if (!channelData.items || channelData.items.length === 0) {
+        console.log(`  ✗ Channel not found: ${sub.channelId} (${sub.title})`);
+        continue;
       }
-    }
 
-    console.log(`  ✓ ${sub.title}: ${videosData.items?.length ?? 0} videos`);
+      const uploadsPlaylistId =
+        channelData.items[0].contentDetails?.relatedPlaylists?.uploads;
+      if (!uploadsPlaylistId) {
+        console.log(`  ✗ No uploads playlist for ${sub.title}`);
+        continue;
+      }
+
+      // Fetch recent playlist items (just first page = 10 most recent, 1 unit)
+      const playlistItemsData = (await youtubeGet("playlistItems", {
+        part: "snippet",
+        playlistId: uploadsPlaylistId,
+        maxResults: "10",
+      }, 1)) as { items?: YouTubePlaylistItemEntry[] };
+
+      if (!playlistItemsData.items || playlistItemsData.items.length === 0) {
+        console.log(`  – No recent uploads for ${sub.title}`);
+        continue;
+      }
+
+      const videoIds = playlistItemsData.items.map(
+        (item) => item.snippet.resourceId.videoId
+      );
+
+      // Fetch video details (1 unit for up to 50 videos)
+      const videosData = (await youtubeGet("videos", {
+        part: "snippet,contentDetails,statistics,liveStreamingDetails",
+        id: videoIds.join(","),
+      }, 1)) as { items?: YouTubeVideoItem[] };
+
+      if (videosData.items) {
+        for (const videoItem of videosData.items) {
+          const video = normalizeVideo(videoItem);
+          const videoPath = await writeResource(
+            "videos",
+            `${videoItem.id}.json`,
+            video
+          );
+          console.log(`  ✓ ${videoPath}`);
+        }
+      }
+
+      console.log(`  ✓ ${sub.title}: ${videosData.items?.length ?? 0} videos`);
+      successCount++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`  ⚠ Error fetching uploads for ${sub.title} (${sub.channelId}): ${msg}`);
+      errorCount++;
+    }
   }
+
+  console.log(`\nSubscription uploads: ${successCount} succeeded, ${errorCount} failed out of ${index.channels.length} channels`);
 }
 
 async function ingestSubscriptions(): Promise<void> {
@@ -943,7 +960,20 @@ async function main(): Promise<void> {
       process.exit(1);
     }
   } catch (err) {
-    console.error(`\n✗ Ingestion failed: ${err instanceof Error ? err.message : err}`);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`\n✗ Ingestion failed: ${msg}`);
+    if (msg.includes("YouTube API error")) {
+      console.error("");
+      console.error("Troubleshooting:");
+      console.error("  1. Verify YouTube Data API v3 is enabled in your Google Cloud project");
+      console.error("  2. Check that YOUTUBE_API_KEY has no IP/referrer restrictions blocking GitHub Actions");
+      console.error("  3. Confirm the API key belongs to a project with YouTube Data API v3 access");
+    } else if (msg.includes("connect") || msg.includes("fetch") || msg.includes("network")) {
+      console.error("");
+      console.error("Troubleshooting:");
+      console.error("  1. Check network connectivity to googleapis.com");
+      console.error("  2. Ensure the runner has outbound internet access");
+    }
     process.exit(1);
   }
 

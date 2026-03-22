@@ -5,6 +5,12 @@ on:
     # Run daily at 06:00 UTC
     - cron: "0 6 * * *"
   workflow_dispatch:
+    inputs:
+      scope:
+        description: "Ingestion scope (e.g. subscriptions, channel:<id>)"
+        required: false
+        default: "subscriptions"
+        type: string
 
 permissions:
   contents: write
@@ -27,28 +33,41 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          INGEST_SCOPE: subscriptions
+          INGEST_SCOPE: ${{ inputs.scope || 'subscriptions' }}
           INGEST_CAPTIONS: "true"
           INGEST_TRANSCRIPTS: "true"
         run: |
+          set +e
           output=$(bun run ingest 2>&1)
+          exit_code=$?
+          set -e
           echo "$output"
+          if [ $exit_code -ne 0 ]; then
+            echo "::error::Ingestion failed with exit code $exit_code"
+            exit $exit_code
+          fi
           quota=$(echo "$output" | grep '^INGEST_QUOTA_TOTAL=' | cut -d= -f2)
           echo "quota=${quota:-0}" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
       - name: Generate guide
+        if: success()
+        continue-on-error: true
         env:
           GUIDE_DATE: ${{ steps.ingest.outputs.date }}
         run: bun run generate-guide
 
       - name: Generate daily receipt
+        if: success()
+        continue-on-error: true
         env:
           RECEIPT_DATE: ${{ steps.ingest.outputs.date }}
           RECEIPT_PERIOD: day
         run: bun run generate-receipt
 
       - name: Generate weekly receipt (Sunday only)
+        if: success()
+        continue-on-error: true
         env:
           RECEIPT_DATE: ${{ steps.ingest.outputs.date }}
           RECEIPT_PERIOD: week
@@ -61,6 +80,8 @@ jobs:
           fi
 
       - name: Update curator learning
+        if: success()
+        continue-on-error: true
         env:
           CURATOR_ACTION: learnFromReceipts
         run: bun run curator
@@ -80,5 +101,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add resources/
-          git commit -m "ingest: subscriptions (${{ steps.ingest.outputs.date }}, ${{ steps.ingest.outputs.quota }} quota units)"
+          git commit -m "ingest: ${{ inputs.scope || 'subscriptions' }} (${{ steps.ingest.outputs.date }}, ${{ steps.ingest.outputs.quota }} quota units)"
           git push
