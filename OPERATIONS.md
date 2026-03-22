@@ -62,7 +62,7 @@ The refresh token is long-lived and does not expire unless revoked. The ingestio
 | `search.list` | API Key |
 | `subscriptions.list` (own) | OAuth |
 | `activities.list` (own) | OAuth |
-| `captions.list` | API Key |
+| `captions.list` | API Key (OAuth preferred) |
 | `captions.download` | OAuth |
 | `commentThreads.list` | API Key |
 
@@ -126,5 +126,22 @@ These commands are safe to run locally without side effects:
 1. **No silent writes** — Any command or workflow that changes repository state is explicitly named and documented.
 2. **No hidden quota spending** — Workflows that call the YouTube API are clearly labelled.
 3. **Credentials never in code** — All secrets are stored as GitHub repository secrets, never in source files.
-4. **Graceful degradation** — If `YOUTUBE_API_KEY` is missing, `ingest` reports the absence and exits cleanly.
+4. **Graceful degradation** — If `YOUTUBE_API_KEY` is missing, `ingest` reports the absence and exits cleanly. In API-key-only mode (no OAuth), the system reports available capabilities, falls back to the subscription index for subscription ingestion, handles per-video caption errors without crashing the batch, and clearly notes that transcript downloads require OAuth.
 5. **Manual before automatic** — Manual dispatch workflows are available before any scheduled automation runs.
+
+## API-Key-Only Mode
+
+When only `YOUTUBE_API_KEY` is set (no OAuth credentials), the system operates in API-key-only mode:
+
+| Feature | Status | Notes |
+|---|---|---|
+| Channel metadata and uploads | ✅ Works | Full support via `channels.list`, `playlistItems.list`, `videos.list` |
+| Playlist metadata and items | ✅ Works | Full support via `playlists.list`, `playlistItems.list` |
+| Video details and statistics | ✅ Works | Full support via `videos.list` |
+| Subscription uploads | ✅ Works | Requires existing `resources/subscriptions.json` (built by OAuth) |
+| Caption track listing | ⚠ Partial | Uses API key (may fail for some videos; errors handled per-video) |
+| Transcript downloads | ❌ Skipped | Requires OAuth; clearly reported when skipped |
+| Subscription list sync | ❌ Skipped | Requires OAuth; falls back to existing index |
+| Guide generation | ✅ Works | Offline — uses existing video resources |
+| Receipt generation | ✅ Works | Offline — uses existing guide and video resources |
+| Curator actions | ✅ Works | Offline — uses repository data; API search optional |
