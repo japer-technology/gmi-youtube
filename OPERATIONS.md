@@ -7,6 +7,7 @@ This document describes the credentials, quota budget, and safety boundaries for
 | Secret | Type | Purpose | Where to Set |
 |---|---|---|---|
 | `YOUTUBE_API_KEY` | API Key | Read-only access to public YouTube data | Repository Settings → Secrets → Actions |
+| `YOUTUBE_CHANNEL_ID` | Channel ID | Default channel to ingest when no explicit scope is set | Repository Settings → Secrets → Actions |
 
 ### OAuth Credentials
 
@@ -18,7 +19,7 @@ OAuth credentials enable subscription intelligence — the highest-value signal 
 | `YOUTUBE_CLIENT_SECRET` | OAuth | Google Cloud application client secret | Repository Settings → Secrets → Actions |
 | `YOUTUBE_REFRESH_TOKEN` | OAuth | Long-lived refresh token for user context | Repository Settings → Secrets → Actions |
 
-When OAuth credentials are not configured, the system falls back to API-key-only mode. It will read the existing `resources/subscriptions.json` index (if present) and fetch recent uploads for listed channels using the API key. The subscription list itself cannot be updated without OAuth.
+When OAuth credentials are not configured, the system falls back to API-key-only mode. If `YOUTUBE_CHANNEL_ID` is set, it automatically ingests that channel. Otherwise, it will read the existing `resources/subscriptions.json` index (if present) and fetch recent uploads for listed channels using the API key. The subscription list itself cannot be updated without OAuth.
 
 ### One-Time OAuth Setup
 

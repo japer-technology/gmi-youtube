@@ -16,8 +16,9 @@ This repository turns YouTube data into a personal TV station that is built, cur
 
 1. Install [Bun](https://bun.sh/).
 2. Add `YOUTUBE_API_KEY` when you want to ingest live YouTube data.
-3. Add `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, and `YOUTUBE_REFRESH_TOKEN` when you want subscription syncing or transcript downloads.
-4. Review [OPERATIONS.md](OPERATIONS.md) before running commands that write to `resources/`.
+3. Add `YOUTUBE_CHANNEL_ID` to automatically ingest a specific channel (no other configuration needed).
+4. Add `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, and `YOUTUBE_REFRESH_TOKEN` when you want subscription syncing or transcript downloads.
+5. Review [OPERATIONS.md](OPERATIONS.md) before running commands that write to `resources/`.
 
 ### How to validate and build
 
@@ -33,6 +34,7 @@ bun run build
 
 ```bash
 export YOUTUBE_API_KEY=your-api-key
+export YOUTUBE_CHANNEL_ID=UCxxxxxx  # optional: auto-ingests this channel
 bun run ingest
 ```
 

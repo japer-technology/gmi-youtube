@@ -7,11 +7,13 @@
  *   - subscriptions  Fetch user subscriptions (OAuth) or ingest uploads from subscription index (API key fallback)
  *
  * Requires YOUTUBE_API_KEY environment variable.
+ * Optional YOUTUBE_CHANNEL_ID — when set and INGEST_SCOPE is not explicitly provided,
+ * the scope automatically becomes channel:<YOUTUBE_CHANNEL_ID>.
  * OAuth credentials (YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN)
  * are required for subscription list fetching but optional — the system falls back
  * to API-key-only mode using an existing subscription index when OAuth is unavailable.
  *
- * Reads INGEST_SCOPE environment variable (default: "subscriptions").
+ * Reads INGEST_SCOPE environment variable (default: "subscriptions", or channel:<id> when YOUTUBE_CHANNEL_ID is set).
  *
  * Caption and transcript support:
  *   - Set INGEST_CAPTIONS=true to fetch caption track metadata (50 units per call)
@@ -25,10 +27,12 @@ const ROOT = join(import.meta.dir, "..");
 const RESOURCES_DIR = join(ROOT, "resources");
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const YOUTUBE_CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID;
 const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
 const YOUTUBE_REFRESH_TOKEN = process.env.YOUTUBE_REFRESH_TOKEN;
-const INGEST_SCOPE = process.env.INGEST_SCOPE || "subscriptions";
+const INGEST_SCOPE = process.env.INGEST_SCOPE
+  || (YOUTUBE_CHANNEL_ID ? `channel:${YOUTUBE_CHANNEL_ID}` : "subscriptions");
 const INGEST_CAPTIONS = process.env.INGEST_CAPTIONS === "true";
 const INGEST_TRANSCRIPTS = process.env.INGEST_TRANSCRIPTS === "true";
 
