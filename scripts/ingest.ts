@@ -695,7 +695,9 @@ interface TranscriptSegment {
 
 async function fetchCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
   console.log(`  Fetching caption tracks for: ${videoId}`);
-  const data = (await youtubeGet("captions", {
+  // captions.list prefers OAuth; fall back to API key for public videos
+  const fetcher = hasOAuthCredentials() ? youtubeGetAuth : youtubeGet;
+  const data = (await fetcher("captions", {
     part: "snippet",
     videoId,
   }, 50)) as { items?: YouTubeCaptionItem[] };
@@ -781,6 +783,13 @@ async function downloadTranscript(
 async function ingestCaptionsForVideos(): Promise<void> {
   console.log("\n--- Caption Ingestion ---\n");
 
+  if (!hasOAuthCredentials()) {
+    console.log("Note: Running without OAuth — caption track fetching uses API key (may be");
+    console.log("limited for some videos). Transcript downloads require OAuth and will be skipped.\n");
+  } else if (INGEST_TRANSCRIPTS) {
+    console.log("OAuth credentials present — transcripts will be downloaded where available.\n");
+  }
+
   const videosDir = join(RESOURCES_DIR, "videos");
   let videoFiles: string[];
   try {
@@ -793,6 +802,7 @@ async function ingestCaptionsForVideos(): Promise<void> {
 
   let captionCount = 0;
   let transcriptCount = 0;
+  let skippedCount = 0;
 
   for (const file of videoFiles) {
     const videoPath = join(videosDir, file);
@@ -800,8 +810,17 @@ async function ingestCaptionsForVideos(): Promise<void> {
     const video = JSON.parse(text) as Record<string, unknown>;
     const videoId = video.id as string;
 
-    // Fetch caption tracks
-    const tracks = await fetchCaptionTracks(videoId);
+    // Fetch caption tracks (per-video error handling so one failure doesn't stop the batch)
+    let tracks: CaptionTrack[] = [];
+    try {
+      tracks = await fetchCaptionTracks(videoId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`  ⚠ Caption tracks unavailable for ${videoId}: ${msg}`);
+      skippedCount++;
+      continue;
+    }
+
     if (tracks.length > 0) {
       video.captionsAvailable = true;
       video.captionTracks = tracks.map((t) => ({
@@ -846,6 +865,12 @@ async function ingestCaptionsForVideos(): Promise<void> {
   }
 
   console.log(`\nCaption summary: ${captionCount} video${captionCount === 1 ? "" : "s"} with captions, ${transcriptCount} transcript${transcriptCount === 1 ? "" : "s"} downloaded`);
+  if (skippedCount > 0) {
+    console.log(`  ${skippedCount} video${skippedCount === 1 ? "" : "s"} skipped due to caption fetch errors`);
+  }
+  if (INGEST_TRANSCRIPTS && !hasOAuthCredentials() && captionCount > 0) {
+    console.log(`  Transcripts skipped: OAuth credentials required for transcript downloads`);
+  }
 }
 
 // --- Main ---
@@ -870,7 +895,26 @@ async function main(): Promise<void> {
 
   console.log(`API key: present`);
   console.log(`OAuth:   ${hasOAuthCredentials() ? "present" : "not configured (API-key-only mode)"}`);
-  console.log(`Scope:   ${INGEST_SCOPE}\n`);
+  console.log(`Scope:   ${INGEST_SCOPE}`);
+
+  if (!hasOAuthCredentials()) {
+    console.log(`\nAPI-key-only mode — available capabilities:`);
+    console.log(`  ✓ Channel metadata and recent uploads`);
+    console.log(`  ✓ Playlist metadata and video items`);
+    console.log(`  ✓ Video details, statistics, and live status`);
+    console.log(`  ✓ Subscription uploads (when index exists)`);
+    if (INGEST_CAPTIONS) {
+      console.log(`  ~ Caption track listing (may require OAuth for some videos)`);
+    }
+    if (INGEST_TRANSCRIPTS) {
+      console.log(`  ✗ Transcript downloads (requires OAuth)`);
+    }
+    if (INGEST_SCOPE === "subscriptions") {
+      console.log(`  ✗ Subscription list sync (requires OAuth, using existing index)`);
+    }
+  }
+
+  console.log("");
 
   try {
     if (INGEST_SCOPE.startsWith(CHANNEL_PREFIX)) {
