@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/publish.yml"
       - "site/**"
       - "resources/**"
       - "scripts/build.ts"
@@ -23,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - uses: oven-sh/setup-bun@v2
         with:
