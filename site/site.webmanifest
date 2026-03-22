@@ -1,0 +1,16 @@
+{
+  "name": "Station — Personal TV",
+  "short_name": "Station",
+  "description": "A personal TV station powered by YouTube, GitHub, and AI curation.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "theme_color": "#0055cc",
+  "background_color": "#fafafa",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

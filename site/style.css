@@ -10,6 +10,28 @@
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Dark mode — system preference */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a1a2e;
+    --fg: #e0e0e0;
+    --muted: #999;
+    --border: #2e2e4a;
+    --accent: #5b9bd5;
+    --card-bg: #22223a;
+  }
+}
+
+/* Dark mode — manual override */
+:root[data-theme="dark"] {
+  --bg: #1a1a2e;
+  --fg: #e0e0e0;
+  --muted: #999;
+  --border: #2e2e4a;
+  --accent: #5b9bd5;
+  --card-bg: #22223a;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -46,6 +68,8 @@ nav {
   margin-top: 0.75rem;
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 nav a {
@@ -63,6 +87,25 @@ nav a.active {
 
 nav a:hover {
   border-bottom-color: var(--accent);
+}
+
+/* Theme toggle */
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-left: auto;
+  line-height: 1;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--fg);
 }
 
 main section {
@@ -1090,4 +1133,60 @@ footer {
   body[data-screen-role="wall"] {
     max-width: 1600px;
   }
+}
+
+/* Dark mode overrides for hardcoded colours */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .guide-entry.now-airing {
+    background: #1a2e26;
+  }
+  :root:not([data-theme="light"]) .guide-entry.is-live {
+    background: #2e1a1a;
+  }
+  :root:not([data-theme="light"]) .guide-entry.is-upcoming {
+    background: #2e2a1a;
+  }
+  :root:not([data-theme="light"]) .wall-state-live .wall-tile-header {
+    background: #2e1a1a;
+  }
+  :root:not([data-theme="light"]) .wall-state-upcoming .wall-tile-header {
+    background: #2e2a1a;
+  }
+  :root:not([data-theme="light"]) .search-highlight {
+    background: rgba(91, 155, 213, 0.2);
+  }
+  :root:not([data-theme="light"]) #search-input:focus,
+  :root:not([data-theme="light"]) #curator-input:focus {
+    box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.25);
+  }
+}
+
+:root[data-theme="dark"] .guide-entry.now-airing {
+  background: #1a2e26;
+}
+
+:root[data-theme="dark"] .guide-entry.is-live {
+  background: #2e1a1a;
+}
+
+:root[data-theme="dark"] .guide-entry.is-upcoming {
+  background: #2e2a1a;
+}
+
+:root[data-theme="dark"] .wall-state-live .wall-tile-header {
+  background: #2e1a1a;
+}
+
+:root[data-theme="dark"] .wall-state-upcoming .wall-tile-header {
+  background: #2e2a1a;
+}
+
+:root[data-theme="dark"] .search-highlight {
+  background: rgba(91, 155, 213, 0.2);
+}
+
+:root[data-theme="dark"] #search-input:focus,
+:root[data-theme="dark"] #curator-input:focus {
+  box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.25);
 }
