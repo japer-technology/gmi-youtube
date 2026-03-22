@@ -2,6 +2,12 @@
 
 #### READ THIS [.github-minimum-intelligence/README.md](.github-minimum-intelligence/README.md)
 
+<p align="center">
+  <picture>
+    <img src="https://raw.githubusercontent.com/japer-technology/gmi-youtube/main/GitHub-YouTube.png" alt="Minimum Intelligence with YouTube" width="500">
+  </picture>
+</p>
+
 ## How To...
 
 This repository turns YouTube data into a personal TV station that is built, curated, and published from GitHub.
@@ -60,9 +66,3 @@ bun run publish
 ```
 
 For the full AI-agent framework, read [.github-minimum-intelligence/README.md](.github-minimum-intelligence/README.md). For credentials, quota, and write-safety details, read [OPERATIONS.md](OPERATIONS.md).
-
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/japer-technology/gmi-youtube/main/GitHub-YouTube.png" alt="Minimum Intelligence with YouTube" width="500">
-  </picture>
-</p>
