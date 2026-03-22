@@ -95,6 +95,58 @@
     }
   }
 
+  // --- Theme toggle (Phase 9) ---
+
+  /**
+   * Apply the persisted theme preference on load.
+   * If the user has manually chosen "light" or "dark", apply it.
+   * Otherwise, defer to the system preference via CSS media query.
+   */
+  (function initTheme() {
+    var saved = getPref("theme", "");
+    if (saved === "light" || saved === "dark") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+
+    // Wire up theme toggle button if present
+    document.addEventListener("DOMContentLoaded", function () {
+      var btn = document.getElementById("theme-toggle");
+      if (!btn) return;
+      function updateLabel() {
+        var current = document.documentElement.getAttribute("data-theme");
+        if (current === "dark") {
+          btn.textContent = "☀︎";
+          btn.setAttribute("aria-label", "Switch to light mode");
+        } else if (current === "light") {
+          btn.textContent = "☾";
+          btn.setAttribute("aria-label", "Switch to dark mode");
+        } else {
+          // System preference — show opposite of system
+          var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          btn.textContent = prefersDark ? "☀︎" : "☾";
+          btn.setAttribute("aria-label", prefersDark ? "Switch to light mode" : "Switch to dark mode");
+        }
+      }
+      updateLabel();
+      btn.addEventListener("click", function () {
+        var current = document.documentElement.getAttribute("data-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var next;
+        if (current === "dark") {
+          next = "light";
+        } else if (current === "light") {
+          next = "dark";
+        } else {
+          // No manual override — toggle from system default
+          next = prefersDark ? "light" : "dark";
+        }
+        document.documentElement.setAttribute("data-theme", next);
+        setPref("theme", next);
+        updateLabel();
+      });
+    });
+  })();
+
   /**
    * Parse URL hash parameters into a key-value object.
    * Supports both simple hashes (#value) and parameterised hashes (#key=val&key2=val2).

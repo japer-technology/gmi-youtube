@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About — Station</title>
+  <meta name="description" content="How Station works — a personal TV station powered by YouTube, GitHub, and AI curation.">
+  <meta property="og:title" content="About — Station">
+  <meta property="og:description" content="How Station works — a personal TV station powered by YouTube, GitHub, and AI curation.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="GitHub-YouTube.png">
+  <meta name="theme-color" content="#0055cc" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-screen-role="about">
+  <header>
+    <h1>Station</h1>
+    <p>About</p>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="wall.html">Channel Wall</a>
+      <a href="receipt.html">Receipts</a>
+      <a href="search.html">Search</a>
+      <a href="curator.html">Curator</a>
+      <a href="about.html" class="active">About</a>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">☾</button>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <h2>What Is Station?</h2>
+      <p>
+        Station is a personal TV station that turns YouTube subscriptions into a calm,
+        intentional viewing experience. Instead of opening YouTube and drifting through
+        algorithmic recommendations, Station presents your content on your terms — scheduled
+        into an editorial guide, organised on a channel wall, and reflected in viewing receipts.
+      </p>
+    </section>
+
+    <section>
+      <h2>How It Works</h2>
+      <p>
+        Station is built on four layers:
+      </p>
+      <div class="card">
+        <h3>YouTube — The Content Source</h3>
+        <p class="meta">
+          YouTube provides the videos, channels, playlists, and live streams.
+          Station reads from the YouTube Data API to discover new content from
+          your subscriptions.
+        </p>
+      </div>
+      <div class="card">
+        <h3>GitHub Actions — The Processing Engine</h3>
+        <p class="meta">
+          Scheduled GitHub Actions workflows run daily to ingest new videos,
+          generate the TV guide, produce viewing receipts, and update the
+          AI curator's understanding of your preferences.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Repository Resources — The Memory</h3>
+        <p class="meta">
+          Every piece of data — channels, videos, guide entries, receipts,
+          transcripts, curator state — is stored as JSON in the repository.
+          The data is versioned, inspectable, and portable. You own it.
+        </p>
+      </div>
+      <div class="card">
+        <h3>GitHub Pages — The Experience</h3>
+        <p class="meta">
+          This static site is served by GitHub Pages. It reads the repository's
+          JSON resources and renders them into pages you can use daily: a TV guide,
+          a channel wall, a search interface, viewing receipts, and a curator chat.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Why Station Exists</h2>
+      <p>
+        YouTube is an extraordinary content platform, but its interface is designed to
+        maximise engagement rather than intentional viewing. Station exists to make
+        YouTube utilisation excellent through ownership rather than addiction.
+      </p>
+      <p>
+        Every part of Station is transparent. The data is JSON you can read.
+        The processing is GitHub Actions you can inspect. The experience is
+        a static site you can modify. Nothing is hidden, nothing is optimised
+        against your interests.
+      </p>
+    </section>
+
+    <section>
+      <h2>Source Code</h2>
+      <p>
+        Station is open source. The full repository — including the ingestion pipeline,
+        schemas, curator logic, and this site — is available on GitHub.
+      </p>
+      <p>
+        <a href="https://github.com/japer-technology/gmi-youtube">View the repository →</a>
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built from repository resources. Inspectable, portable, and yours.</p>
+  </footer>
+
+  <script src="station.js"></script>
+</body>
+</html>

@@ -348,6 +348,7 @@ async function validateSite(): Promise<ValidationResult[]> {
     "receipt.html",
     "search.html",
     "curator.html",
+    "about.html",
   ];
 
   const expectedScreenRoles: Record<string, string> = {
@@ -357,6 +358,7 @@ async function validateSite(): Promise<ValidationResult[]> {
     "receipt.html": "receipt",
     "search.html": "search",
     "curator.html": "curator",
+    "about.html": "about",
   };
 
   for (const page of requiredPages) {
