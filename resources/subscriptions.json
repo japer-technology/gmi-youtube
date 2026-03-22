@@ -1,6 +1,11 @@
 {
   "channels": [
     {
+      "channelId": "UCcFb2uGX65kdPGTLPGv581g",
+      "title": "Eric Mourant",
+      "subscribedAt": "2026-03-22T02:21:37Z"
+    },
+    {
       "channelId": "UCBcRF18a7Qf58cCRy5xuWwQ",
       "title": "TRAVIS",
       "description": "Relaxing virtual train rides through beautiful scenery.",
@@ -8,6 +13,6 @@
       "subscribedAt": "2025-06-15T12:00:00Z"
     }
   ],
-  "totalCount": 1,
-  "updatedAt": "2026-03-20T10:00:00Z"
+  "totalCount": 2,
+  "updatedAt": "2026-03-22T02:21:37Z"
 }
