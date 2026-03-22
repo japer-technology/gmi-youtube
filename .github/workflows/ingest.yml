@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: "Ingestion scope (e.g. subscriptions, channel:<id>)"
+        description: "Ingestion scope (e.g. subscriptions, channel:<id>). Leave empty to auto-detect from YOUTUBE_CHANNEL_ID."
         required: false
-        default: "subscriptions"
+        default: ""
         type: string
 
 permissions:
@@ -27,6 +27,7 @@ jobs:
         id: ingest
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
@@ -75,5 +76,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add resources/
-          git commit -m "ingest: ${{ inputs.scope }} (${{ steps.ingest.outputs.date }}, ${{ steps.ingest.outputs.quota }} quota units)"
+          git commit -m "ingest: ${{ inputs.scope || 'auto' }} (${{ steps.ingest.outputs.date }}, ${{ steps.ingest.outputs.quota }} quota units)"
           git push
